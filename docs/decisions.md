@@ -22,3 +22,12 @@
 - Firebase CLI 15.9.0 is installed, but its update check cannot write to `/Users/MattLeikam/.config` from the sandbox.
 - Google Cloud SDK 565.0.0 is installed, with a warning that its Python 3.9 runtime is no longer officially supported.
 - GitHub CLI was not found on `PATH`.
+
+## 2026-07-09 Design System Foundation
+
+- Located the generated design reference package at `/Users/MattLeikam/Downloads/gomode_design_reference_package.zip`.
+- Copied approved mockups into `docs/design_refs/approved/` and earlier iterations into `docs/design_refs/archive/`.
+- Treated the mockups as documentation references only. Runtime UI uses Flutter widgets, gradients, icons, and lightweight `CustomPainter` illustrations.
+- Centralized GoMode visual tokens under `lib/core/theme/` so screen code consumes named colors, spacing, radii, and shadows instead of local one-off values.
+- Kept typography on system fonts because no safe custom font package or font asset is configured yet.
+- Added shared widgets under `lib/shared/widgets/` to support the approved home, modes, date-night, road-trip, and saved layouts as composable Flutter pieces.

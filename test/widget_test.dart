@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gomode/app/gomode_app.dart';
@@ -7,10 +8,14 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: GoModeApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('GoMode'), findsWidgets);
-    expect(find.text('Pick your mood. Find your move.'), findsOneWidget);
+    expect(find.bySemanticsLabel('GoMode'), findsOneWidget);
     expect(find.text('What mode are you in today?'), findsOneWidget);
-    expect(find.text('Date night'), findsOneWidget);
-    expect(find.text('Food wheel'), findsOneWidget);
+    expect(find.text('Spin My Mode'), findsWidgets);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Date Night'), findsOneWidget);
+    expect(find.text('Weekend Plan'), findsWidgets);
   });
 }

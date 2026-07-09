@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/discovery_mode.dart';
 import '../../../data/repositories/discovery_repository.dart';
+import '../../../shared/widgets/shared_widgets.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -11,141 +16,306 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final modes = ref.watch(discoveryRepositoryProvider).getModes();
-    final textTheme = Theme.of(context).textTheme;
+    final popularModes = _popularModes(modes);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text(AppConstants.appName)),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppConstants.appName,
-                      style: textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+    return GoModeScaffold(
+      currentIndex: 0,
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: GradientHeader(
+              showWordmark: true,
+              locationLabel: 'Austin, TX',
+              title: AppConstants.primaryQuestion,
+              bottom: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: const [
+                      FilterChipPill(
+                        label: 'Food',
+                        icon: Icons.lunch_dining_rounded,
+                        color: AppColors.amber,
+                        onDark: true,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      AppConstants.tagline,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      FilterChipPill(
+                        label: 'Date',
+                        icon: Icons.favorite_rounded,
+                        color: AppColors.coral,
+                        onDark: true,
                       ),
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      AppConstants.primaryQuestion,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      FilterChipPill(
+                        label: 'Kids',
+                        icon: Icons.family_restroom_rounded,
+                        color: AppColors.green,
+                        onDark: true,
                       ),
+                      FilterChipPill(
+                        label: 'Road Trip',
+                        icon: Icons.directions_car_rounded,
+                        color: AppColors.lavender,
+                        onDark: true,
+                      ),
+                      FilterChipPill(
+                        label: 'Outdoors',
+                        icon: Icons.park_rounded,
+                        color: AppColors.green,
+                        onDark: true,
+                      ),
+                      FilterChipPill(
+                        label: 'Health',
+                        icon: Icons.health_and_safety_rounded,
+                        color: AppColors.amber,
+                        onDark: true,
+                      ),
+                      FilterChipPill(
+                        label: 'Surprise Me',
+                        icon: Icons.casino_rounded,
+                        color: AppColors.white,
+                        onDark: true,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  FeaturedModeCard(
+                    title: 'Spin My Mode',
+                    subtitle: 'Get a smart local idea',
+                    actionLabel: 'Spin My Mode',
+                    illustration: const ModeWheelIllustration(
+                      borderRadius: AppRadius.xlBorder,
                     ),
-                  ],
-                ),
+                    onPressed: () {},
+                  ),
+                ],
               ),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              sliver: SliverLayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.crossAxisExtent <= 0) {
-                    return const SliverToBoxAdapter(child: SizedBox.shrink());
-                  }
-
-                  return SliverGrid.builder(
-                    itemCount: modes.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 260,
-                          mainAxisExtent: 124,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                    itemBuilder: (context, index) =>
-                        _ModeTile(mode: modes[index]),
-                  );
-                },
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.only(top: AppSpacing.xl),
+            sliver: SliverToBoxAdapter(
+              child: CategoryCarousel(
+                title: 'Popular modes',
+                height: 294,
+                children: [
+                  for (final mode in popularModes)
+                    ModeCard(
+                      title: mode.title,
+                      subtitle: mode.subtitle,
+                      icon: mode.icon,
+                      accentColor: mode.color,
+                      badgeLabel: mode.badge,
+                      illustration: mode.illustration,
+                    ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+          const SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.page),
+            sliver: SliverToBoxAdapter(child: _ContinueSection()),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: AppSpacing.bottomNavHeight + AppSpacing.xxl,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ModeTile extends StatelessWidget {
-  const _ModeTile({required this.mode});
-
-  final DiscoveryMode mode;
+class _ContinueSection extends StatelessWidget {
+  const _ContinueSection();
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {},
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Continue where you left off',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {},
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.chevron_right_rounded),
+              label: const Text('View all'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryBlue,
+                textStyle: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceRaised,
+            borderRadius: AppRadius.largeCard,
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppShadows.card,
+          ),
+          child: Row(
             children: [
-              Icon(_iconForMode(mode.id), color: colorScheme.primary),
-              const Spacer(),
-              Text(
-                mode.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              const SizedBox(
+                width: 128,
+                height: 96,
+                child: SavedPlanThumbnail(
+                  kind: SavedPlanThumbnailKind.weekendPark,
+                  borderRadius: AppRadius.mdBorder,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                mode.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const StatusPill(
+                      label: 'Weekend Plan',
+                      color: AppColors.teal,
+                      compact: true,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Barton Springs & Beyond',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          color: AppColors.textMuted,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Saved 2 days ago',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '2 of 6 places visited',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const ProgressPill(value: 0.34, color: AppColors.teal),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Material(
+                color: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  side: const BorderSide(color: AppColors.border),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  onTap: () {},
+                  child: const SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textPrimary,
+                      size: 30,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }
 
-IconData _iconForMode(String id) {
-  return switch (id) {
-    'date-night' => Icons.favorite_border,
-    'weekend' => Icons.calendar_month_outlined,
-    'food-wheel' => Icons.restaurant_menu_outlined,
-    'road-trip' => Icons.route_outlined,
-    'family' => Icons.family_restroom_outlined,
-    'pets' => Icons.pets_outlined,
-    'health-outdoors' => Icons.forest_outlined,
-    'home-life' => Icons.home_work_outlined,
-    'local-games' => Icons.sports_esports_outlined,
-    'coffee' => Icons.coffee_outlined,
-    'happy-hour' => Icons.local_bar_outlined,
-    'live-music' => Icons.music_note_outlined,
-    'arts-culture' => Icons.palette_outlined,
-    'shopping' => Icons.shopping_bag_outlined,
-    'rainy-day' => Icons.umbrella_outlined,
-    'solo' => Icons.self_improvement_outlined,
-    'friends' => Icons.groups_outlined,
-    'budget' => Icons.savings_outlined,
-    'special-occasion' => Icons.celebration_outlined,
-    'surprise-me' => Icons.auto_awesome_outlined,
-    _ => Icons.explore_outlined,
-  };
+class _HomeModeCardData {
+  const _HomeModeCardData({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.illustration,
+    this.badge,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final Widget illustration;
+  final String? badge;
+}
+
+List<_HomeModeCardData> _popularModes(List<DiscoveryMode> modes) {
+  final lookup = {for (final mode in modes) mode.id: mode};
+
+  return [
+    _HomeModeCardData(
+      title: 'Date Night',
+      subtitle:
+          lookup['date-night']?.description ?? 'Romantic spots and fun ideas',
+      icon: Icons.favorite_border_rounded,
+      color: AppColors.coral,
+      badge: 'Popular',
+      illustration: const DateNightIllustration(),
+    ),
+    _HomeModeCardData(
+      title: 'Weekend Plan',
+      subtitle:
+          lookup['weekend']?.description ?? 'Make the most of your weekend',
+      icon: Icons.calendar_month_rounded,
+      color: AppColors.teal,
+      badge: 'Great tonight',
+      illustration: const WeekendParkIllustration(),
+    ),
+    _HomeModeCardData(
+      title: 'Road Trip Stops',
+      subtitle:
+          lookup['road-trip']?.description ?? 'Scenic places worth the detour',
+      icon: Icons.directions_car_rounded,
+      color: AppColors.lavender,
+      badge: 'Popular',
+      illustration: const RoadTripIllustration(),
+    ),
+    const _HomeModeCardData(
+      title: 'Allergy Map',
+      subtitle: 'Find safe places near you',
+      icon: Icons.local_florist_rounded,
+      color: AppColors.amber,
+      badge: 'New',
+      illustration: AllergyOutdoorIllustration(),
+    ),
+  ];
 }
