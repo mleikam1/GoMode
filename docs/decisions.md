@@ -212,3 +212,25 @@
   existing Flutter `GOMODE_*` variables. Maps server credentials remain Secret
   Manager-only; the Firebase preview helper performs local backend validation
   and prints a scoped `functions:gomode` command without changing cloud state.
+
+## 2026-07-10 — Final MVP QA
+
+- Kept demo mode as the default release-safe behavior. With Firebase and the
+  debug proxy unconfigured, Flutter selects a no-network backend client and the
+  resilient repositories use visibly labeled local fallback data.
+- Treated native location denial and missing native Maps SDK configuration as
+  supported states. The Map remains usable with an Austin fallback and an
+  explicit setup placeholder instead of blocking navigation or requesting an
+  unrelated Google API.
+- Verified each of the 20 catalog destinations through the Android emulator UI
+  in addition to the existing widget coverage. Core screens were visually
+  checked at 1080×2400, scrollable actions were brought above persistent
+  navigation, and the app log showed no overflow, navigation, assertion, or
+  unhandled-exception signatures.
+- Reconfirmed that only the blank `.env.example` is tracked, credential and
+  platform config patterns are ignored, and machine-specific paths appear only
+  in historical decision documentation. Ignored third-party build-cache
+  examples are not app configuration and remain outside Git.
+- Recorded the final commands, results, environment notes, limitations, and
+  follow-up work in `docs/final_qa_report.md` so release readiness does not rely
+  on an ephemeral local session.
