@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../features/saved/application/saved_library_controller.dart';
+import '../../../features/saved/domain/saved_item.dart';
 import '../../../shared/widgets/primary_gradient_button.dart';
 import '../data/generated_plan_store.dart';
 import '../domain/generated_plan.dart';
@@ -22,16 +24,23 @@ class DateNightPlanScreen extends ConsumerStatefulWidget {
 
 class _DateNightPlanScreenState extends ConsumerState<DateNightPlanScreen> {
   bool _isSaving = false;
-  bool _saved = false;
+  bool _legacySaved = false;
 
   @override
   void initState() {
     super.initState();
-    _saved = ref.read(generatedPlanStoreProvider).contains(widget.plan.id);
+    _legacySaved = ref
+        .read(generatedPlanStoreProvider)
+        .contains(widget.plan.id);
   }
 
   @override
   Widget build(BuildContext context) {
+    final library = ref.watch(savedLibraryProvider);
+    final saved = library.maybeWhen(
+      data: (value) => _legacySaved || value.contains(_savedItemId),
+      orElse: () => _legacySaved,
+    );
     return ColoredBox(
       color: AppColors.surface,
       child: CustomScrollView(
@@ -64,18 +73,18 @@ class _DateNightPlanScreenState extends ConsumerState<DateNightPlanScreen> {
                 const SizedBox(height: AppSpacing.xs),
                 PrimaryGradientButton(
                   key: const ValueKey('save-generated-plan-button'),
-                  label: _saved
+                  label: saved
                       ? 'Saved'
                       : _isSaving
                       ? 'Saving...'
                       : 'Save Plan',
-                  icon: _saved
+                  icon: saved
                       ? Icons.bookmark_added_rounded
                       : Icons.bookmark_add_outlined,
-                  foregroundColor: _isSaving || _saved
+                  foregroundColor: _isSaving
                       ? AppColors.textSecondary
                       : AppColors.white,
-                  onPressed: _isSaving || _saved ? null : _savePlan,
+                  onPressed: _isSaving ? null : () => _togglePlan(saved),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 OutlinedButton.icon(
@@ -111,20 +120,51 @@ class _DateNightPlanScreenState extends ConsumerState<DateNightPlanScreen> {
     }
   }
 
-  Future<void> _savePlan() async {
+  String get _savedItemId => 'date-night-plan-${widget.plan.id}';
+
+  SavedItem get _savedItem => SavedItem(
+    id: _savedItemId,
+    type: SavedItemType.plan,
+    categoryLabel: 'Date Night',
+    title: widget.plan.title,
+    description:
+        'Dinner, an activity, and a sweet finish in ${widget.plan.location}',
+    savedAt: DateTime.now(),
+    status: SavedItemStatus.saved,
+    visual: SavedItemVisual.dateNight,
+    imageAsset: 'assets/images/saved/date_night.png',
+    destinationPath: '/modes/date-night',
+  );
+
+  Future<void> _togglePlan(bool saved) async {
     setState(() => _isSaving = true);
-    await ref.read(generatedPlanStoreProvider).save(widget.plan);
+    if (!saved) {
+      await ref.read(generatedPlanStoreProvider).save(widget.plan);
+    }
     if (!mounted) {
       return;
     }
 
     setState(() {
       _isSaving = false;
-      _saved = true;
+      _legacySaved = !saved;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Date Night plan saved locally.')),
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Date Night plan removed from saved.'
+              : 'Date Night plan saved locally.',
+        ),
+      ),
     );
+
+    await ref.read(savedLibraryProvider.future);
+    if (saved) {
+      await ref.read(savedLibraryProvider.notifier).removeItem(_savedItemId);
+    } else {
+      await ref.read(savedLibraryProvider.notifier).saveItem(_savedItem);
+    }
   }
 }
 

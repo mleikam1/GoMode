@@ -51,10 +51,11 @@
 
 ### `05_saved.png`
 
-- Saved header and tab pills: `GradientHeader`, `FilterChipPill`
-- Saved plan list thumbnails: `SavedPlanThumbnail`
-- Plan status treatments: `StatusPill`, `ProgressPill`
-- Empty collection surface: shared border, radius, and white raised surface tokens
+- Saved header and tab pills: dense `GradientHeader` composition and typed Saved filters
+- Saved plan list thumbnails: project-local raster art under `assets/images/saved/`
+- Plan status treatments: Saved and In Progress badges plus quest progress
+- Empty collection surface and local name dialog: shared border, radius, and white raised surface tokens
+- Persistence and UI state: `SavedRepository`, `SavedLocalStorage`, and `SavedLibraryController`
 - Active Saved tab: `BottomNavShell`
 
 ## Illustration Widgets

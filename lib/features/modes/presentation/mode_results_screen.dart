@@ -8,6 +8,8 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/discovery_mode.dart';
 import '../../../data/services/mode_catalog.dart';
+import '../../../features/saved/application/saved_library_controller.dart';
+import '../../../features/saved/domain/saved_item.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 import 'mode_visuals.dart';
 
@@ -20,6 +22,7 @@ class ModeResultsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final catalog = ref.watch(modeCatalogProvider);
     final mode = catalog.findById(modeId);
+    final library = ref.watch(savedLibraryProvider);
 
     if (mode == null) {
       return _UnknownResultsScreen(modeId: modeId);
@@ -48,6 +51,7 @@ class ModeResultsScreen extends ConsumerWidget {
                 icon: mode.supportsSaving
                     ? Icons.bookmark_border_rounded
                     : Icons.more_horiz_rounded,
+                onTap: mode.supportsSaving ? () => context.go('/saved') : null,
               ),
               bottom: Wrap(
                 spacing: AppSpacing.xs,
@@ -72,16 +76,36 @@ class ModeResultsScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.xl),
                 ],
                 for (var index = 0; index < mode.demoResults.length; index++)
-                  _ResultStopCard(
-                    mode: mode,
-                    result: mode.demoResults[index],
-                    index: index,
+                  Builder(
+                    builder: (context) {
+                      final item = _savedItemForResult(
+                        mode,
+                        mode.demoResults[index],
+                        index,
+                      );
+                      final saved = library.maybeWhen(
+                        data: (value) => value.contains(item.id),
+                        orElse: () => false,
+                      );
+                      return _ResultStopCard(
+                        mode: mode,
+                        result: mode.demoResults[index],
+                        index: index,
+                        saved: saved,
+                        onToggleSaved: () async {
+                          await ref.read(savedLibraryProvider.future);
+                          await ref
+                              .read(savedLibraryProvider.notifier)
+                              .toggleItem(item);
+                        },
+                      );
+                    },
                   ),
                 if (mode.supportsSaving) ...[
                   const SizedBox(height: AppSpacing.md),
                   PrimaryGradientButton(
-                    label: 'Save demo plan',
-                    icon: Icons.bookmark_add_rounded,
+                    label: 'View saved items',
+                    icon: Icons.bookmarks_rounded,
                     onPressed: () => context.go('/saved'),
                   ),
                 ],
@@ -157,11 +181,15 @@ class _ResultStopCard extends StatelessWidget {
     required this.mode,
     required this.result,
     required this.index,
+    required this.saved,
+    required this.onToggleSaved,
   });
 
   final DiscoveryMode mode;
   final ModeDemoResult result;
   final int index;
+  final bool saved;
+  final VoidCallback onToggleSaved;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +246,17 @@ class _ResultStopCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                IconButton(
+                  key: ValueKey('save-mode-result-${mode.id}-$index'),
+                  tooltip: saved ? 'Remove from saved' : 'Save result',
+                  onPressed: onToggleSaved,
+                  icon: Icon(
+                    saved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    color: saved ? mode.accentColor : AppColors.textMuted,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
@@ -243,6 +282,43 @@ class _ResultStopCard extends StatelessWidget {
       ),
     );
   }
+}
+
+SavedItem _savedItemForResult(
+  DiscoveryMode mode,
+  ModeDemoResult result,
+  int index,
+) {
+  final type = switch (mode.queryStrategyType) {
+    ModeQueryStrategyType.genericPlanGenerator => SavedItemType.plan,
+    ModeQueryStrategyType.routeSearch => SavedItemType.route,
+    ModeQueryStrategyType.gameQuest => SavedItemType.quest,
+    ModeQueryStrategyType.nearbyPlaces ||
+    ModeQueryStrategyType.textSearch ||
+    ModeQueryStrategyType.environmental ||
+    ModeQueryStrategyType.solar => SavedItemType.place,
+  };
+  final visual = switch (type) {
+    SavedItemType.plan =>
+      mode.id == 'date-night'
+          ? SavedItemVisual.dateNight
+          : SavedItemVisual.weekendPlan,
+    SavedItemType.place => SavedItemVisual.place,
+    SavedItemType.route => SavedItemVisual.roadTrip,
+    SavedItemType.quest => SavedItemVisual.localQuest,
+  };
+
+  return SavedItem(
+    id: '${mode.id}-result-$index',
+    type: type,
+    categoryLabel: mode.title,
+    title: result.title,
+    description: result.subtitle,
+    savedAt: DateTime.now(),
+    status: SavedItemStatus.saved,
+    visual: visual,
+    destinationPath: '/modes/${mode.id}/results',
+  );
 }
 
 class _MapPreviewPainter extends CustomPainter {

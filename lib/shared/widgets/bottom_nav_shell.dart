@@ -122,8 +122,8 @@ class _BottomNavItem extends StatelessWidget {
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+              height: 3,
+              margin: const EdgeInsets.only(bottom: 4),
               decoration: BoxDecoration(
                 color: selected ? AppColors.primaryBlue : Colors.transparent,
                 borderRadius: AppRadius.chip,
@@ -132,9 +132,9 @@ class _BottomNavItem extends StatelessWidget {
             Icon(
               selected ? destination.selectedIcon : destination.icon,
               color: color,
-              size: 30,
+              size: 27,
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               destination.label,
               maxLines: 1,
@@ -142,6 +142,8 @@ class _BottomNavItem extends StatelessWidget {
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: color,
                 fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+                fontSize: 11.5,
+                height: 1,
               ),
             ),
           ],

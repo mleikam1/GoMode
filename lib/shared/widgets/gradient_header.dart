@@ -16,6 +16,7 @@ class GradientHeader extends StatelessWidget {
     this.trailing,
     this.bottom,
     this.compact = false,
+    this.dense = false,
   });
 
   final String title;
@@ -26,6 +27,7 @@ class GradientHeader extends StatelessWidget {
   final Widget? trailing;
   final Widget? bottom;
   final bool compact;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +47,17 @@ class GradientHeader extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 AppSpacing.headerHorizontal,
-                compact ? AppSpacing.md : AppSpacing.xl,
+                dense
+                    ? 10
+                    : compact
+                    ? AppSpacing.md
+                    : AppSpacing.xl,
                 AppSpacing.headerHorizontal,
-                compact ? AppSpacing.xl : AppSpacing.xxxl,
+                dense
+                    ? 81
+                    : compact
+                    ? AppSpacing.xl
+                    : AppSpacing.xxxl,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +68,7 @@ class GradientHeader extends StatelessWidget {
                       if (leading != null)
                         leading!
                       else if (showWordmark)
-                        const _GoModeWordmark(),
+                        _GoModeWordmark(dense: dense),
                       if (leading == null && !showWordmark)
                         const SizedBox.shrink(),
                       const Spacer(),
@@ -70,13 +80,13 @@ class GradientHeader extends StatelessWidget {
                     ],
                   ),
                   if (locationLabel != null) ...[
-                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(height: dense ? 4 : AppSpacing.sm),
                     Row(
                       children: [
                         Icon(
                           Icons.location_on_rounded,
                           color: AppColors.white.withValues(alpha: 0.72),
-                          size: 22,
+                          size: dense ? 17 : 22,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -85,37 +95,49 @@ class GradientHeader extends StatelessWidget {
                               ?.copyWith(
                                 color: AppColors.white.withValues(alpha: 0.72),
                                 fontWeight: FontWeight.w700,
+                                fontSize: dense ? 13 : null,
+                                height: dense ? 1 : null,
                               ),
                         ),
                         const SizedBox(width: 2),
                         Icon(
                           Icons.keyboard_arrow_down_rounded,
                           color: AppColors.white.withValues(alpha: 0.72),
+                          size: dense ? 20 : null,
                         ),
                       ],
                     ),
                   ],
-                  SizedBox(height: compact ? AppSpacing.lg : AppSpacing.xxl),
+                  SizedBox(
+                    height: dense
+                        ? 10
+                        : compact
+                        ? AppSpacing.lg
+                        : AppSpacing.xxl,
+                  ),
                   Text(
                     title,
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       color: AppColors.white,
                       fontWeight: FontWeight.w900,
                       height: 1.04,
+                      fontSize: dense ? 34 : null,
                     ),
                   ),
                   if (subtitle != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
+                    SizedBox(height: dense ? 4 : AppSpacing.xs),
                     Text(
                       subtitle!,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: AppColors.white.withValues(alpha: 0.76),
                         fontWeight: FontWeight.w600,
+                        fontSize: dense ? 14.5 : null,
+                        height: dense ? 1.2 : null,
                       ),
                     ),
                   ],
                   if (bottom != null) ...[
-                    const SizedBox(height: AppSpacing.xl),
+                    SizedBox(height: dense ? AppSpacing.sm : AppSpacing.xl),
                     bottom!,
                   ],
                 ],
@@ -129,7 +151,9 @@ class GradientHeader extends StatelessWidget {
 }
 
 class _GoModeWordmark extends StatelessWidget {
-  const _GoModeWordmark();
+  const _GoModeWordmark({this.dense = false});
+
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +161,7 @@ class _GoModeWordmark extends StatelessWidget {
       color: AppColors.white,
       fontWeight: FontWeight.w900,
       height: 1,
+      fontSize: dense ? 31 : null,
     );
 
     return Semantics(

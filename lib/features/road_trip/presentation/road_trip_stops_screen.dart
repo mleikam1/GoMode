@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../features/saved/application/saved_library_controller.dart';
+import '../../../features/saved/domain/saved_item.dart';
 import '../../../shared/widgets/primary_gradient_button.dart';
 import '../data/road_trip_route_service.dart';
 import '../data/route_stop_store.dart';
@@ -38,6 +40,17 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final library = ref.watch(savedLibraryProvider);
+    final savedStopIds = {
+      ..._savedStopIds,
+      ...library.maybeWhen(
+        data: (value) => value.items
+            .where((item) => item.id.startsWith('road-trip-stop-'))
+            .map((item) => item.id.substring('road-trip-stop-'.length)),
+        orElse: () => const Iterable<String>.empty(),
+      ),
+    };
+
     return ColoredBox(
       color: AppColors.surface,
       child: FutureBuilder<RoutePlan>(
@@ -92,7 +105,7 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
                             ? RouteResultsList(
                                 key: const ValueKey('route-results-list'),
                                 stops: visibleStops,
-                                savedStopIds: _savedStopIds,
+                                savedStopIds: savedStopIds,
                                 onSave: _toggleSaved,
                                 onFavorite: _toggleSaved,
                                 onNavigate: _navigateToStop,
@@ -149,7 +162,14 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
   }
 
   Future<void> _toggleSaved(RouteStop stop) async {
-    final shouldSave = !_savedStopIds.contains(stop.id);
+    final itemId = 'road-trip-stop-${stop.id}';
+    final libraryContains = ref
+        .read(savedLibraryProvider)
+        .maybeWhen(
+          data: (value) => value.contains(itemId),
+          orElse: () => false,
+        );
+    final shouldSave = !(_savedStopIds.contains(stop.id) || libraryContains);
     await ref.read(routeStopStoreProvider).setSaved(stop, saved: shouldSave);
     if (!mounted) {
       return;
@@ -170,6 +190,30 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
               : '${stop.title} removed from saved stops.',
         ),
       ),
+    );
+
+    await ref.read(savedLibraryProvider.future);
+    if (shouldSave) {
+      await ref
+          .read(savedLibraryProvider.notifier)
+          .saveItem(_savedItemForStop(stop));
+    } else {
+      await ref.read(savedLibraryProvider.notifier).removeItem(itemId);
+    }
+  }
+
+  SavedItem _savedItemForStop(RouteStop stop) {
+    return SavedItem(
+      id: 'road-trip-stop-${stop.id}',
+      type: SavedItemType.place,
+      categoryLabel: 'Road Trip Stop',
+      title: stop.title,
+      description: '${stop.locationLabel} · ${stop.rating} stars',
+      savedAt: DateTime.now(),
+      status: SavedItemStatus.saved,
+      visual: SavedItemVisual.place,
+      imageAsset: stop.imageAsset,
+      destinationPath: '/modes/road-trip-stops',
     );
   }
 

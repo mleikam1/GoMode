@@ -43,11 +43,15 @@ class HeaderIconButton extends StatelessWidget {
     super.key,
     this.onTap,
     this.showDot = false,
+    this.size = 56,
+    this.iconSize = 26,
   });
 
   final IconData icon;
   final VoidCallback? onTap;
   final bool showDot;
+  final double size;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -61,25 +65,25 @@ class HeaderIconButton extends StatelessWidget {
             customBorder: const CircleBorder(),
             onTap: onTap,
             child: Container(
-              width: 56,
-              height: 56,
+              width: size,
+              height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: AppColors.white.withValues(alpha: 0.16),
                 ),
               ),
-              child: Icon(icon, color: AppColors.white, size: 26),
+              child: Icon(icon, color: AppColors.white, size: iconSize),
             ),
           ),
         ),
         if (showDot)
           Positioned(
-            top: 4,
-            right: 2,
+            top: size <= 46 ? 1 : 4,
+            right: size <= 46 ? 0 : 2,
             child: Container(
-              width: 13,
-              height: 13,
+              width: size <= 46 ? 10 : 13,
+              height: size <= 46 ? 10 : 13,
               decoration: BoxDecoration(
                 color: AppColors.coral,
                 shape: BoxShape.circle,

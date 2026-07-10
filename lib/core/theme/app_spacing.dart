@@ -11,6 +11,6 @@ abstract final class AppSpacing {
 
   static const double page = 20;
   static const double headerHorizontal = 22;
-  static const double bottomNavHeight = 86;
+  static const double bottomNavHeight = 53;
   static const double minTouchTarget = 48;
 }

@@ -70,6 +70,87 @@ final result: passed
 
 ---
 
+# Saved Design QA
+
+- Source visual truth: `docs/design_refs/approved/05_saved.png`
+- Implementation screenshot: `/private/tmp/gomode_saved_471x809.png`
+- Normalized side-by-side comparison: `/private/tmp/gomode_saved_design_comparison.png`
+- Supporting interaction captures: `/private/tmp/gomode_saved_places_empty_471x836.png`, `/private/tmp/gomode_saved_collection_created_471x836.png`, and `/private/tmp/gomode_saved_collection_reloaded_471x836.png`
+- Viewport: 471 × 809 app-content pixels. The approved 941 × 1672 source includes a 54-physical-pixel OS status bar, so that region was removed and the remaining source was downsampled exactly to the browser app surface.
+- State: light theme, Plans selected, four first-launch demo saves, and no collections
+
+## Full-view comparison evidence
+
+The status-bar-normalized approved reference and final Flutter capture were combined into one 962 × 809 original-resolution comparison and opened together. The implementation matches the source hierarchy and main region positions: wordmark/location/notification header, title and subtitle, four typed tabs, overlapping white cards, all four image subjects and text records, status pills, quest progress, Collections heading, empty collection call to action, and active Saved navigation.
+
+The card stack begins within one logical pixel of the source after status-bar normalization. Header, tab, collection, and navigation boundaries align within a few logical pixels. Focused crops were not required because the original-resolution comparison keeps category labels, titles, descriptions, timestamps, statuses, progress, and collection copy readable.
+
+## Required fidelity surfaces
+
+- Fonts and typography: GoMode's configured system/Roboto stack preserves the source's heavy display hierarchy, compact uppercase category labels, readable card titles, and muted supporting copy. All text fits without clipping. The approved display face remains slightly rounder, which is P3 app-wide typography polish.
+- Spacing and layout rhythm: Header content, tabs, card overlap, 20-pixel page margins, 110-pixel card rhythm, collection surface, and compact navigation follow the approved proportions. The final 471 × 809 capture and 390 × 844 widget tests have no overflow.
+- Colors and visual tokens: Existing navy header, active blue gradient, coral, teal, lavender, amber, green, white surface, border, and shadow tokens closely match the approved palette and semantic states.
+- Image quality and asset fidelity: Four project-local 512 × 512 raster illustrations match the approved Date Night, Austin park, scenic drive, and Local Quest subjects and crops. They remain sharp in the card slots and use no network placeholders or code-drawn substitutes.
+- Copy and content: Header copy, all four tabs, every card category/title/description/metadata/status, quest progress, Collections heading, empty-state title, and Create collection label match the requested content.
+- Controls and states: Tabs filter by saved type, all item menus can remove saves, mode-result bookmarks toggle, Date Night and Road Trip save controls are reversible, and collection creation accepts a local name. Browser checks verified the Places empty state, collection creation, and collection persistence after reload.
+- Responsiveness and accessibility: Tabs and cards fit at 390 pixels wide, the collection layout stacks on narrow screens, native buttons expose semantics, and the final fresh browser tab reported no console warnings or errors.
+
+## Comparison history
+
+### Pass 1
+
+- Evidence: `/private/tmp/gomode_saved_pass2_471x836.png`
+- [P2] The existing 86-pixel bottom navigation covered most of the empty collection surface.
+- [P2] The four-card stack used slightly too much vertical space for the approved viewport.
+
+Fixes made:
+
+- Matched the approved compact navigation proportions and tightened the indicator, icon, and label rhythm.
+- Reduced wide-card height and inter-card gaps while preserving the reference image crop and all text.
+- Made the collection empty state responsive and compacted its button to the approved width.
+
+### Pass 2
+
+- Evidence: `/private/tmp/gomode_saved_471x836.png`
+- [P2] A one-pixel navigation overflow remained at the compact height.
+- [P2] Browser capture included no OS status bar, leaving the header/card comparison vertically offset from the source.
+
+Fixes made:
+
+- Reduced bottom-navigation icon and label metrics so the compact shell has no overflow.
+- Tightened the dense header's notification, location, subtitle, and tab metrics.
+- Compared the implementation against the source's 471 × 809 app-content region after removing the 54-pixel status bar.
+
+### Final pass
+
+- Evidence: `/private/tmp/gomode_saved_471x809.png` and `/private/tmp/gomode_saved_design_comparison.png`
+- Header, tabs, cards, collection surface, and navigation align with no actionable P0/P1/P2 differences.
+- Interaction evidence confirms filter empty states, collection creation, reload persistence, and a clean browser console.
+
+## Findings
+
+No actionable P0, P1, or P2 findings remain.
+
+## Open questions
+
+- The approved collection surface uses a dashed border and decorative sparkles. The implementation uses the existing solid border token and Material folder/favorite icons; this is an acceptable P3 simplification that keeps the empty-state action clear.
+
+## Implementation checklist
+
+- [x] Match the approved Saved header, tabs, four demo cards, statuses, and collection empty state.
+- [x] Persist typed saved items and collections locally behind a replaceable repository abstraction.
+- [x] Seed demo data only once and preserve user removals across restarts.
+- [x] Make Date Night, Road Trip, and generic mode-result save controls reversible.
+- [x] Verify filter, empty, collection-create, and reload states with no browser console errors.
+
+## Follow-up polish
+
+- [P3] A future app-wide rounded display font and dashed-border primitive could close the remaining small decorative differences.
+
+final result: passed
+
+---
+
 # Road Trip Stops Design QA
 
 - Source visual truth: `docs/design_refs/approved/04_road_trip_results.png`

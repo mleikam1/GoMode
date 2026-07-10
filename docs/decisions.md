@@ -69,3 +69,13 @@
 - Kept Navigate and full-map actions inside GoMode's existing map branch until a destination-aware in-app map or external Google Maps URL strategy is selected.
 - Used a polished non-Google map placeholder for the Map segment because API-backed map configuration is not required for this milestone.
 - Generated three project-local, high-resolution raster assets for Buc-ee's New Braunfels, the scenic overlook, and the local BBQ stop to match the approved result-card art direction without a network dependency.
+
+## 2026-07-10 Saved Items and Local Persistence
+
+- Added a domain-level `SavedItem` model for plans, places, routes, and quests, plus a `SavedCollection` model. Presentation code depends on a `SavedRepository` contract rather than SharedPreferences so a Firestore-backed repository can replace the local implementation later.
+- Stored versioned JSON payloads behind a minimal `SavedLocalStorage` abstraction. SharedPreferences is the current adapter; no backend, account, or network dependency is required.
+- Seeded the four approved Saved cards as plan entries on the first repository initialization. A separate persisted seed-complete flag prevents the demo items from returning after a user removes them all.
+- Classified newly saved generic result cards from their mode query strategy: generic plan generators become plans, nearby/text/environmental/solar results become places, route searches become routes, and game quests become quests.
+- Kept Date Night's session store and Road Trip's saved-stop store as compatibility boundaries for their existing screens, while also writing every user action to the unified Saved repository. Their controls update optimistically before the durable local write completes.
+- Created four project-local raster thumbnails from the approved Saved art direction instead of reusing code-drawn placeholder illustrations.
+- Reduced the shared bottom-navigation height to the approved mobile proportions and tightened its internal icon/label rhythm. The same five destinations and navigation behavior remain unchanged.
