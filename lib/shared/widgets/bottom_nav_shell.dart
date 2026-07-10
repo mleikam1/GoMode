@@ -112,41 +112,50 @@ class _BottomNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = selected ? AppColors.primaryBlue : AppColors.textMuted;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 36,
-              height: 3,
-              margin: const EdgeInsets.only(bottom: 4),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.primaryBlue : Colors.transparent,
-                borderRadius: AppRadius.chip,
-              ),
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: destination.label,
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 36,
+                  height: 3,
+                  margin: const EdgeInsets.only(bottom: 4),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primaryBlue
+                        : Colors.transparent,
+                    borderRadius: AppRadius.chip,
+                  ),
+                ),
+                Icon(
+                  selected ? destination.selectedIcon : destination.icon,
+                  color: color,
+                  size: 27,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  destination.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+                    fontSize: 11.5,
+                    height: 1,
+                  ),
+                ),
+              ],
             ),
-            Icon(
-              selected ? destination.selectedIcon : destination.icon,
-              color: color,
-              size: 27,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              destination.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: color,
-                fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
-                fontSize: 11.5,
-                height: 1,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

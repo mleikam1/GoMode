@@ -7,6 +7,8 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/gradient_header.dart';
+import '../../../shared/widgets/app_motion.dart';
+import '../../../shared/widgets/responsive_content.dart';
 import '../../../shared/widgets/soft_icon_badge.dart';
 import '../application/saved_library_controller.dart';
 import '../domain/saved_collection.dart';
@@ -22,7 +24,12 @@ class SavedScreen extends ConsumerWidget {
       data: (value) => value.selectedType,
       orElse: () => SavedItemType.plan,
     );
-    final bodyTop = MediaQuery.paddingOf(context).top + 196;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final scaledHeaderAllowance = ((textScale - 1) * 72)
+        .clamp(0.0, 36.0)
+        .toDouble();
+    final bodyTop =
+        MediaQuery.paddingOf(context).top + 196 + scaledHeaderAllowance;
 
     return ColoredBox(
       color: AppColors.surface,
@@ -122,41 +129,49 @@ class _SavedTab extends StatelessWidget {
         child: InkWell(
           customBorder: const StadiumBorder(),
           onTap: onTap,
-          child: Ink(
-            height: 36,
-            decoration: BoxDecoration(
-              color: selected ? null : AppColors.white.withValues(alpha: 0.06),
-              gradient: selected ? AppColors.activeBlueGradient : null,
-              borderRadius: AppRadius.chip,
-              border: Border.all(
-                color: selected
-                    ? AppColors.primaryBlueLight
-                    : AppColors.white.withValues(alpha: 0.22),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _iconForType(type),
-                  color: selected ? AppColors.white : accent,
-                  size: 19,
-                ),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    type.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
-                    ),
+          child: SizedBox(
+            height: 44,
+            child: Align(
+              child: Ink(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? null
+                      : AppColors.white.withValues(alpha: 0.06),
+                  gradient: selected ? AppColors.activeBlueGradient : null,
+                  borderRadius: AppRadius.chip,
+                  border: Border.all(
+                    color: selected
+                        ? AppColors.primaryBlueLight
+                        : AppColors.white.withValues(alpha: 0.22),
                   ),
                 ),
-              ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _iconForType(type),
+                      color: selected ? AppColors.white : accent,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        type.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -172,25 +187,27 @@ class _SavedContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-      child: Column(
-        children: [
-          if (library.filteredItems.isEmpty)
-            _SavedItemsEmptyState(type: library.selectedType)
-          else
-            for (
-              var index = 0;
-              index < library.filteredItems.length;
-              index++
-            ) ...[
-              _SavedItemCard(item: library.filteredItems[index]),
-              if (index != library.filteredItems.length - 1)
-                const SizedBox(height: 6),
-            ],
-          const SizedBox(height: 10),
-          _CollectionsSection(collections: library.collections),
-        ],
+    return ResponsiveContent(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+        child: Column(
+          children: [
+            if (library.filteredItems.isEmpty)
+              _SavedItemsEmptyState(type: library.selectedType)
+            else
+              for (
+                var index = 0;
+                index < library.filteredItems.length;
+                index++
+              ) ...[
+                _SavedItemCard(item: library.filteredItems[index]),
+                if (index != library.filteredItems.length - 1)
+                  const SizedBox(height: 6),
+              ],
+            const SizedBox(height: 10),
+            _CollectionsSection(collections: library.collections),
+          ],
+        ),
       ),
     );
   }
@@ -210,126 +227,138 @@ class _SavedItemCard extends ConsumerWidget {
         final cardHeight = wide ? 110.0 : 124.0;
         final imageWidth = wide ? 119.0 : 102.0;
 
-        return Material(
-          key: ValueKey('saved-item-${item.id}'),
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: AppRadius.largeCard,
-            onTap: item.destinationPath == null
-                ? null
-                : () => context.go(item.destinationPath!),
-            child: Ink(
-              height: cardHeight,
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceRaised,
+        return Semantics(
+          button: item.destinationPath != null,
+          label: '${item.categoryLabel}, ${item.title}. ${item.description}.',
+          child: PressScale(
+            enabled: item.destinationPath != null,
+            child: Material(
+              key: ValueKey('saved-item-${item.id}'),
+              color: Colors.transparent,
+              child: InkWell(
                 borderRadius: AppRadius.largeCard,
-                border: Border.all(color: AppColors.white),
-                boxShadow: AppShadows.soft,
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: imageWidth,
-                    height: double.infinity,
-                    child: _SavedThumbnail(item: item),
+                onTap: item.destinationPath == null
+                    ? null
+                    : () => context.go(item.destinationPath!),
+                child: Ink(
+                  height: cardHeight,
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceRaised,
+                    borderRadius: AppRadius.largeCard,
+                    border: Border.all(color: AppColors.white),
+                    boxShadow: AppShadows.soft,
                   ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: 18,
-                          child: Row(
-                            children: [
-                              Icon(
-                                _iconForVisual(item.visual),
-                                color: accent,
-                                size: 15,
-                              ),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  item.categoryLabel.toUpperCase(),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: accent,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 11,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: imageWidth,
+                        height: double.infinity,
+                        child: _SavedThumbnail(item: item),
+                      ),
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: 18,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _iconForVisual(item.visual),
+                                    color: accent,
+                                    size: 15,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      item.categoryLabel.toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: accent,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 11,
+                                          ),
+                                    ),
+                                  ),
+                                  PopupMenuButton<String>(
+                                    key: ValueKey('saved-menu-${item.id}'),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints.tightFor(
+                                      width: 28,
+                                      height: 28,
+                                    ),
+                                    tooltip: 'Saved item options',
+                                    color: AppColors.surfaceRaised,
+                                    icon: const Icon(
+                                      Icons.more_horiz_rounded,
+                                      color: AppColors.textMuted,
+                                      size: 20,
+                                    ),
+                                    onSelected: (_) {
+                                      ref
+                                          .read(savedLibraryProvider.notifier)
+                                          .removeItem(item.id);
+                                    },
+                                    itemBuilder: (context) => const [
+                                      PopupMenuItem(
+                                        value: 'remove',
+                                        child: Text('Remove from saved'),
                                       ),
-                                ),
-                              ),
-                              PopupMenuButton<String>(
-                                key: ValueKey('saved-menu-${item.id}'),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints.tightFor(
-                                  width: 28,
-                                  height: 28,
-                                ),
-                                tooltip: 'Saved item options',
-                                color: AppColors.surfaceRaised,
-                                icon: const Icon(
-                                  Icons.more_horiz_rounded,
-                                  color: AppColors.textMuted,
-                                  size: 20,
-                                ),
-                                onSelected: (_) {
-                                  ref
-                                      .read(savedLibraryProvider.notifier)
-                                      .removeItem(item.id);
-                                },
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(
-                                    value: 'remove',
-                                    child: Text('Remove from saved'),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w900,
-                                fontSize: wide ? 16.5 : 15.5,
-                                height: 1.08,
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        Expanded(
-                          child: Text(
-                            item.description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: AppColors.textSecondary,
-                                  fontSize: wide ? 12.5 : 12,
-                                  height: 1.18,
-                                ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _SavedMetadata(item: item, accent: accent),
                             ),
-                            const SizedBox(width: 7),
-                            _SavedStatusBadge(item: item, accent: accent),
+                            Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: wide ? 16.5 : 15.5,
+                                    height: 1.08,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            Expanded(
+                              child: Text(
+                                item.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: wide ? 12.5 : 12,
+                                      height: 1.18,
+                                    ),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SavedMetadata(
+                                    item: item,
+                                    accent: accent,
+                                  ),
+                                ),
+                                const SizedBox(width: 7),
+                                _SavedStatusBadge(item: item, accent: accent),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -347,23 +376,29 @@ class _SavedThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final asset = item.imageAsset ?? _assetForVisual(item.visual);
-    return ClipRRect(
-      borderRadius: AppRadius.mdBorder,
-      child: Image.asset(
-        asset,
-        fit: BoxFit.cover,
-        alignment: item.visual == SavedItemVisual.dateNight
-            ? Alignment.center
-            : Alignment.center,
-        errorBuilder: (context, error, stackTrace) => ColoredBox(
-          color: _accentForVisual(item.visual).withValues(alpha: 0.12),
-          child: Icon(
-            _iconForVisual(item.visual),
-            color: _accentForVisual(item.visual),
-            size: 38,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cacheWidth =
+            (constraints.maxWidth * MediaQuery.devicePixelRatioOf(context))
+                .ceil();
+        return ClipRRect(
+          borderRadius: AppRadius.mdBorder,
+          child: Image.asset(
+            asset,
+            fit: BoxFit.cover,
+            cacheWidth: cacheWidth,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (context, error, stackTrace) => ColoredBox(
+              color: _accentForVisual(item.visual).withValues(alpha: 0.12),
+              child: Icon(
+                _iconForVisual(item.visual),
+                color: _accentForVisual(item.visual),
+                size: 38,
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -825,9 +860,59 @@ class _SavedLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 260,
-      child: Center(child: CircularProgressIndicator()),
+    return const ResponsiveContent(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.page),
+        child: ShimmerLoading(
+          semanticLabel: 'Loading saved items',
+          child: Column(
+            children: [
+              _SavedItemSkeleton(),
+              SizedBox(height: 6),
+              _SavedItemSkeleton(),
+              SizedBox(height: 6),
+              _SavedItemSkeleton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SavedItemSkeleton extends StatelessWidget {
+  const _SavedItemSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 110,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: AppRadius.largeCard,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Row(
+        children: [
+          SkeletonBox(width: 104, height: double.infinity),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBox(width: 110, height: 12),
+                SizedBox(height: AppSpacing.xs),
+                SkeletonBox(height: 18),
+                SizedBox(height: AppSpacing.xs),
+                SkeletonBox(height: 12),
+                Spacer(),
+                SkeletonBox(width: 130, height: 14),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

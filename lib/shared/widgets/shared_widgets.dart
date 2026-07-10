@@ -1,4 +1,5 @@
 export 'app_search_bar.dart';
+export 'app_motion.dart';
 export 'bottom_nav_shell.dart';
 export 'category_carousel.dart';
 export 'featured_mode_card.dart';
@@ -8,5 +9,6 @@ export 'gradient_header.dart';
 export 'mode_card.dart';
 export 'mode_illustrations.dart';
 export 'primary_gradient_button.dart';
+export 'responsive_content.dart';
 export 'soft_icon_badge.dart';
 export 'status_pill.dart';

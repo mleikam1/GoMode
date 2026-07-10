@@ -58,6 +58,23 @@ void main() {
     );
     expect(find.text('Spin the Wheel'), findsOneWidget);
   });
+
+  testWidgets('category carousel cards keep substantial proportions', (
+    tester,
+  ) async {
+    await _pumpModesScreen(tester);
+
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -260));
+    await tester.pumpAndSettle();
+
+    final card = find.byKey(const ValueKey('category-mode-card-food-wheel'));
+    final size = tester.getSize(card);
+    expect(size.width, greaterThanOrEqualTo(142));
+    expect(size.height, greaterThanOrEqualTo(110));
+    expect(size.width / size.height, greaterThan(1.15));
+    expect(find.bySemanticsLabel(RegExp('Carousel page 1 of')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<void> _pumpModesScreen(

@@ -32,6 +32,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   _HomeFilter? _activeFilter;
+  double _wheelTurns = 0;
+  bool _isSpinning = false;
 
   @override
   Widget build(BuildContext context) {
@@ -40,57 +42,87 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final weatherPlaceholder = ref.watch(homeWeatherPlaceholderProvider);
     final random = ref.watch(homeSpinRandomProvider);
     final popularModes = _popularModes(catalog.modes);
-
     return ColoredBox(
       color: AppColors.surface,
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: GradientHeader(
-              showWordmark: true,
-              locationLabel: 'Austin, TX',
-              title: AppConstants.primaryQuestion,
-              bottom: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: [
-                      for (final filter in _homeFilters)
-                        FilterChipPill(
-                          key: ValueKey('home-filter-${filter.id}'),
-                          label: filter.label,
-                          icon: filter.icon,
-                          color: filter.color,
-                          selected: _activeFilter == filter.filter,
-                          onDark: true,
-                          onTap: () => _toggleFilter(filter.filter),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  FeaturedModeCard(
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    GradientHeader(
+                      compact: true,
+                      showWordmark: true,
+                      locationLabel: 'Austin, TX',
+                      title: AppConstants.primaryQuestion,
+                      bottom: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        children: [
+                          for (final filter in _homeFilters)
+                            FilterChipPill(
+                              key: ValueKey('home-filter-${filter.id}'),
+                              label: filter.label,
+                              icon: filter.icon,
+                              color: filter.color,
+                              compact: true,
+                              selected: _activeFilter == filter.filter,
+                              onDark: true,
+                              onTap: () => _toggleFilter(filter.filter),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 96),
+                  ],
+                ),
+                Positioned(
+                  left: AppSpacing.page,
+                  right: AppSpacing.page,
+                  bottom: 0,
+                  height: 166,
+                  child: FeaturedModeCard(
                     key: const ValueKey('home-spin-card'),
                     title: 'Spin My Mode',
                     subtitle: 'Get a smart local idea',
-                    actionLabel: 'Spin My Mode',
-                    illustration: const ModeWheelIllustration(
-                      borderRadius: AppRadius.xlBorder,
+                    actionLabel: _isSpinning
+                        ? 'Picking a mode…'
+                        : 'Spin My Mode',
+                    illustration: Semantics(
+                      liveRegion: true,
+                      label: _isSpinning
+                          ? 'Spinning mode wheel'
+                          : 'Mode wheel ready to spin',
+                      child: TweenAnimationBuilder<double>(
+                        key: ValueKey('home-mode-wheel-$_wheelTurns'),
+                        tween: Tween<double>(
+                          begin: _wheelTurns == 0 ? 0 : _wheelTurns - 4.75,
+                          end: _wheelTurns,
+                        ),
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 900),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, turns, child) {
+                          return ModeWheelIllustration(
+                            borderRadius: AppRadius.xlBorder,
+                            rotationTurns: turns,
+                          );
+                        },
+                      ),
                     ),
-                    onPressed: () {
-                      final selectedModeId = selectHomeSpinModeId(
-                        now: now,
-                        weatherPlaceholder: weatherPlaceholder,
-                        roadFilterActive: _activeFilter == _HomeFilter.roadTrip,
-                        random: random,
-                      );
-                      _openMode(context, selectedModeId, impact: true);
-                    },
+                    onPressed: _isSpinning
+                        ? null
+                        : () => _spinMode(
+                            now: now,
+                            weatherPlaceholder: weatherPlaceholder,
+                            random: random,
+                          ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           SliverPadding(
@@ -99,7 +131,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: CategoryCarousel(
                 title: 'Popular modes',
                 onActionTap: () => context.go('/modes'),
-                height: 294,
+                height: 176,
+                spacing: AppSpacing.xs,
                 children: [
                   for (final mode in popularModes)
                     ModeCard(
@@ -110,6 +143,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       accentColor: mode.color,
                       badgeLabel: mode.badge,
                       illustration: mode.illustration,
+                      width: 104,
+                      height: 176,
                       onTap: () => _openMode(context, mode.id),
                     ),
                 ],
@@ -136,6 +171,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() {
       _activeFilter = _activeFilter == filter ? null : filter;
     });
+  }
+
+  Future<void> _spinMode({
+    required DateTime now,
+    required String weatherPlaceholder,
+    required math.Random random,
+  }) async {
+    if (_isSpinning) {
+      return;
+    }
+    final selectedModeId = selectHomeSpinModeId(
+      now: now,
+      weatherPlaceholder: weatherPlaceholder,
+      roadFilterActive: _activeFilter == _HomeFilter.roadTrip,
+      random: random,
+    );
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    setState(() {
+      _isSpinning = true;
+      _wheelTurns += 4.75;
+    });
+    if (!reduceMotion) {
+      await Future<void>.delayed(const Duration(milliseconds: 920));
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _isSpinning = false);
+    _openMode(context, selectedModeId, impact: true);
   }
 }
 

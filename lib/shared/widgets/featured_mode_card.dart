@@ -5,6 +5,7 @@ import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import 'primary_gradient_button.dart';
+import 'app_motion.dart';
 
 class FeaturedModeCard extends StatelessWidget {
   const FeaturedModeCard({
@@ -26,106 +27,122 @@ class FeaturedModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppColors.activeBlueGradient,
-        borderRadius: AppRadius.heroCard,
-        boxShadow: AppShadows.glowBlue,
-      ),
-      child: Stack(
-        children: [
-          const Positioned.fill(
-            child: CustomPaint(painter: _FeatureSparkPainter()),
+    return PressScale(
+      enabled: onPressed != null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: AppColors.activeBlueGradient,
+            borderRadius: AppRadius.heroCard,
+            boxShadow: AppShadows.glowBlue,
           ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final narrow = constraints.maxWidth < 250;
-                final compact = constraints.maxWidth < 360;
-                final imageSize = narrow
-                    ? 128.0
-                    : compact
-                    ? 118.0
-                    : 148.0;
-                final titleStyle =
-                    (narrow
-                            ? Theme.of(context).textTheme.headlineSmall
-                            : Theme.of(context).textTheme.headlineMedium)
-                        ?.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w900,
-                          height: 1.02,
-                        );
-                final textContent = Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: titleStyle,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.white.withValues(alpha: 0.84),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    PrimaryGradientButton(
-                      label: actionLabel,
-                      icon: actionIcon,
-                      height: narrow ? 48 : 50,
-                      expanded: narrow,
-                      foregroundColor: AppColors.primaryBlue,
-                      gradient: const LinearGradient(
-                        colors: [AppColors.white, AppColors.white],
-                      ),
-                      onPressed: onPressed,
-                    ),
-                  ],
-                );
+          child: Stack(
+            children: [
+              const Positioned.fill(
+                child: CustomPaint(painter: _FeatureSparkPainter()),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final narrow = constraints.maxWidth < 250;
+                    final compact = constraints.maxWidth < 360;
+                    final compactHeight = constraints.maxHeight < 170;
+                    final imageSize = narrow
+                        ? 112.0
+                        : compact
+                        ? 112.0
+                        : 128.0;
+                    final titleStyle =
+                        (compactHeight
+                                ? Theme.of(context).textTheme.titleLarge
+                                : narrow
+                                ? Theme.of(context).textTheme.headlineSmall
+                                : Theme.of(context).textTheme.headlineMedium)
+                            ?.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w900,
+                              height: 1.02,
+                            );
+                    final textContent = Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: titleStyle,
+                        ),
+                        SizedBox(height: compactHeight ? 4 : AppSpacing.xs),
+                        Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              (compactHeight
+                                      ? Theme.of(context).textTheme.bodyMedium
+                                      : Theme.of(context).textTheme.titleMedium)
+                                  ?.copyWith(
+                                    color: AppColors.white.withValues(
+                                      alpha: 0.84,
+                                    ),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                        SizedBox(height: compactHeight ? 4 : AppSpacing.xs),
+                        PrimaryGradientButton(
+                          label: actionLabel,
+                          icon: actionIcon,
+                          height: 44,
+                          expanded: narrow,
+                          foregroundColor: AppColors.primaryBlue,
+                          gradient: const LinearGradient(
+                            colors: [AppColors.white, AppColors.white],
+                          ),
+                          onPressed: onPressed,
+                        ),
+                      ],
+                    );
 
-                if (narrow) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: SizedBox(
+                    if (narrow) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: imageSize,
+                              height: imageSize,
+                              child: illustration,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          textContent,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        SizedBox(
                           width: imageSize,
                           height: imageSize,
                           child: illustration,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      textContent,
-                    ],
-                  );
-                }
-
-                return Row(
-                  children: [
-                    SizedBox(
-                      width: imageSize,
-                      height: imageSize,
-                      child: illustration,
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(child: textContent),
-                  ],
-                );
-              },
-            ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(child: textContent),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

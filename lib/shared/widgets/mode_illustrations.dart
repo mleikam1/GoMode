@@ -87,16 +87,21 @@ class LocalQuestIllustration extends StatelessWidget {
 }
 
 class ModeWheelIllustration extends StatelessWidget {
-  const ModeWheelIllustration({super.key, this.borderRadius = AppRadius.card});
+  const ModeWheelIllustration({
+    super.key,
+    this.borderRadius = AppRadius.card,
+    this.rotationTurns = 0,
+  });
 
   final BorderRadiusGeometry borderRadius;
+  final double rotationTurns;
 
   @override
   Widget build(BuildContext context) {
     return _IllustrationSurface(
       gradient: AppColors.activeBlueGradient,
       borderRadius: borderRadius,
-      painter: const _ModeWheelPainter(),
+      painter: _ModeWheelPainter(rotationTurns),
     );
   }
 }
@@ -620,7 +625,9 @@ class _LocalQuestPainter extends CustomPainter {
 }
 
 class _ModeWheelPainter extends CustomPainter {
-  const _ModeWheelPainter();
+  const _ModeWheelPainter(this.rotationTurns);
+
+  final double rotationTurns;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -643,6 +650,12 @@ class _ModeWheelPainter extends CustomPainter {
         ..close();
       canvas.drawPath(ray, rayPaint);
     }
+
+    canvas
+      ..save()
+      ..translate(center.dx, center.dy)
+      ..rotate(rotationTurns * math.pi * 2)
+      ..translate(-center.dx, -center.dy);
 
     final basePaint = Paint()..color = AppColors.white;
     canvas.drawCircle(center, radius * 1.08, basePaint);
@@ -682,6 +695,8 @@ class _ModeWheelPainter extends CustomPainter {
       );
     }
 
+    canvas.restore();
+
     canvas.drawCircle(center, radius * 0.26, Paint()..color = AppColors.white);
     canvas.drawCircle(
       center,
@@ -713,5 +728,7 @@ class _ModeWheelPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ModeWheelPainter oldDelegate) {
+    return oldDelegate.rotationTurns != rotationTurns;
+  }
 }

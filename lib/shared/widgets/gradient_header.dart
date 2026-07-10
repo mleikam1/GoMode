@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_spacing.dart';
 import 'soft_icon_badge.dart';
+import 'responsive_content.dart';
 
 class GradientHeader extends StatelessWidget {
   const GradientHeader({
@@ -31,121 +33,190 @@ class GradientHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: AppColors.headerGradient,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(AppRadius.xxl),
-          bottomRight: Radius.circular(AppRadius.xxl),
-        ),
+    final inlineTitle = leading == null && !showWordmark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
       ),
-      child: Stack(
-        children: [
-          const Positioned.fill(child: CustomPaint(painter: _HeaderPainter())),
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.headerHorizontal,
-                dense
-                    ? 10
-                    : compact
-                    ? AppSpacing.md
-                    : AppSpacing.xl,
-                AppSpacing.headerHorizontal,
-                dense
-                    ? 81
-                    : compact
-                    ? AppSpacing.xl
-                    : AppSpacing.xxxl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      if (leading != null)
-                        leading!
-                      else if (showWordmark)
-                        _GoModeWordmark(dense: dense),
-                      if (leading == null && !showWordmark)
-                        const SizedBox.shrink(),
-                      const Spacer(),
-                      trailing ??
-                          const HeaderIconButton(
-                            icon: Icons.notifications_none_rounded,
-                            showDot: true,
-                          ),
-                    ],
-                  ),
-                  if (locationLabel != null) ...[
-                    SizedBox(height: dense ? 4 : AppSpacing.sm),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_rounded,
-                          color: AppColors.white.withValues(alpha: 0.72),
-                          size: dense ? 17 : 22,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          locationLabel!,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: AppColors.white.withValues(alpha: 0.72),
-                                fontWeight: FontWeight.w700,
-                                fontSize: dense ? 13 : null,
-                                height: dense ? 1 : null,
-                              ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: AppColors.white.withValues(alpha: 0.72),
-                          size: dense ? 20 : null,
-                        ),
-                      ],
-                    ),
-                  ],
-                  SizedBox(
-                    height: dense
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: AppColors.headerGradient,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(AppRadius.xxl),
+            bottomRight: Radius.circular(AppRadius.xxl),
+          ),
+        ),
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: CustomPaint(painter: _HeaderPainter()),
+            ),
+            SafeArea(
+              bottom: false,
+              child: ResponsiveContent(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.headerHorizontal,
+                    inlineTitle
+                        ? AppSpacing.sm
+                        : dense
                         ? 10
                         : compact
-                        ? AppSpacing.lg
-                        : AppSpacing.xxl,
+                        ? AppSpacing.md
+                        : AppSpacing.xl,
+                    AppSpacing.headerHorizontal,
+                    dense
+                        ? 81
+                        : compact
+                        ? AppSpacing.xl
+                        : AppSpacing.xxxl,
                   ),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w900,
-                      height: 1.04,
-                      fontSize: dense ? 34 : null,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    SizedBox(height: dense ? 4 : AppSpacing.xs),
-                    Text(
-                      subtitle!,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.white.withValues(alpha: 0.76),
-                        fontWeight: FontWeight.w600,
-                        fontSize: dense ? 14.5 : null,
-                        height: dense ? 1.2 : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (inlineTitle)
+                            Expanded(
+                              child: _HeaderTitleBlock(
+                                title: title,
+                                subtitle: subtitle,
+                                inline: true,
+                              ),
+                            )
+                          else if (leading != null)
+                            leading!
+                          else if (showWordmark)
+                            _GoModeWordmark(dense: dense),
+                          if (!inlineTitle) const Spacer(),
+                          if (inlineTitle) const SizedBox(width: AppSpacing.md),
+                          trailing ??
+                              const HeaderIconButton(
+                                icon: Icons.notifications_none_rounded,
+                                showDot: true,
+                              ),
+                        ],
                       ),
-                    ),
-                  ],
-                  if (bottom != null) ...[
-                    SizedBox(height: dense ? AppSpacing.sm : AppSpacing.xl),
-                    bottom!,
-                  ],
-                ],
+                      if (locationLabel != null) ...[
+                        SizedBox(height: dense ? 4 : AppSpacing.sm),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_rounded,
+                              color: AppColors.white.withValues(alpha: 0.72),
+                              size: dense ? 17 : 22,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              locationLabel!,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: AppColors.white.withValues(
+                                      alpha: 0.72,
+                                    ),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: dense ? 13 : null,
+                                    height: dense ? 1 : null,
+                                  ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: AppColors.white.withValues(alpha: 0.72),
+                              size: dense ? 20 : null,
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (!inlineTitle) ...[
+                        SizedBox(
+                          height: dense
+                              ? 10
+                              : compact
+                              ? AppSpacing.lg
+                              : AppSpacing.xxl,
+                        ),
+                        _HeaderTitleBlock(
+                          title: title,
+                          subtitle: subtitle,
+                          dense: dense,
+                        ),
+                      ],
+                      if (bottom != null) ...[
+                        SizedBox(
+                          height: inlineTitle
+                              ? AppSpacing.md
+                              : dense
+                              ? AppSpacing.sm
+                              : compact
+                              ? AppSpacing.sm
+                              : AppSpacing.xl,
+                        ),
+                        bottom!,
+                      ],
+                    ],
+                  ),
+                ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderTitleBlock extends StatelessWidget {
+  const _HeaderTitleBlock({
+    required this.title,
+    this.subtitle,
+    this.inline = false,
+    this.dense = false,
+  });
+
+  final String title;
+  final String? subtitle;
+  final bool inline;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            color: AppColors.white,
+            fontWeight: FontWeight.w900,
+            height: 1.04,
+            fontSize: inline
+                ? 30
+                : dense
+                ? 34
+                : null,
+          ),
+        ),
+        if (subtitle != null) ...[
+          SizedBox(height: dense ? 4 : AppSpacing.xs),
+          Text(
+            subtitle!,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppColors.white.withValues(alpha: 0.76),
+              fontWeight: FontWeight.w600,
+              fontSize: inline
+                  ? 16
+                  : dense
+                  ? 14.5
+                  : null,
+              height: dense ? 1.2 : null,
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 }

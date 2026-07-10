@@ -43,8 +43,8 @@ class HeaderIconButton extends StatelessWidget {
     super.key,
     this.onTap,
     this.showDot = false,
-    this.size = 56,
-    this.iconSize = 26,
+    this.size = 44,
+    this.iconSize = 22,
   });
 
   final IconData icon;

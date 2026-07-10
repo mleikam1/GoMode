@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -68,18 +69,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'date-night',
                     name: AppRoute.dateNight.name,
-                    builder: (context, state) => const DateNightSetupScreen(),
+                    pageBuilder: (context, state) =>
+                        _motionPage(state, const DateNightSetupScreen()),
                     routes: [
                       GoRoute(
                         path: 'plan',
                         name: AppRoute.dateNightPlan.name,
-                        builder: (context, state) {
+                        pageBuilder: (context, state) {
                           final plan = state.extra is GeneratedPlan
                               ? state.extra! as GeneratedPlan
                               : generateDemoDateNightPlan(
                                   const DateNightPreferences.defaults(),
                                 );
-                          return DateNightPlanScreen(plan: plan);
+                          return _motionPage(
+                            state,
+                            DateNightPlanScreen(plan: plan),
+                          );
                         },
                       ),
                     ],
@@ -87,7 +92,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'road-trip-stops',
                     name: AppRoute.roadTrip.name,
-                    builder: (context, state) => const RoadTripStopsScreen(),
+                    pageBuilder: (context, state) =>
+                        _motionPage(state, const RoadTripStopsScreen()),
                     routes: [
                       GoRoute(
                         path: 'results',
@@ -98,19 +104,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: ':modeId',
                     name: AppRoute.modeDetail.name,
-                    builder: (context, state) {
-                      return ModeDetailScreen(
-                        modeId: state.pathParameters['modeId']!,
+                    pageBuilder: (context, state) {
+                      return _motionPage(
+                        state,
+                        ModeDetailScreen(
+                          modeId: state.pathParameters['modeId']!,
+                        ),
                       );
                     },
                     routes: [
                       GoRoute(
                         path: 'results',
                         name: AppRoute.modeResults.name,
-                        builder: (context, state) {
-                          return ModeResultsScreen(
-                            modeId: state.pathParameters['modeId']!,
-                            selectedFilters: state.uri.queryParameters,
+                        pageBuilder: (context, state) {
+                          return _motionPage(
+                            state,
+                            ModeResultsScreen(
+                              modeId: state.pathParameters['modeId']!,
+                              selectedFilters: state.uri.queryParameters,
+                            ),
                           );
                         },
                       ),
@@ -160,18 +172,50 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/debug/design',
         name: AppRoute.designDebug.name,
-        builder: (context, state) => const DesignDebugScreen(),
+        pageBuilder: (context, state) =>
+            _motionPage(state, const DesignDebugScreen()),
       ),
       GoRoute(
         path: '/privacy',
         name: AppRoute.privacy.name,
-        builder: (context, state) => const PrivacyScreen(),
+        pageBuilder: (context, state) =>
+            _motionPage(state, const PrivacyScreen()),
       ),
       GoRoute(
         path: '/terms',
         name: AppRoute.terms.name,
-        builder: (context, state) => const TermsScreen(),
+        pageBuilder: (context, state) =>
+            _motionPage(state, const TermsScreen()),
       ),
     ],
   );
 });
+
+Page<void> _motionPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 320),
+    reverseTransitionDuration: const Duration(milliseconds: 240),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.disableAnimationsOf(context)) {
+        return child;
+      }
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: Tween<double>(begin: 0.86, end: 1).animate(curved),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.035, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}

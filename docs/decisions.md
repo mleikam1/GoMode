@@ -165,3 +165,30 @@
   create or send a `LeadCapture` unless the injected service explicitly reports
   that storage and privacy configuration are ready. The current mock never
   reports ready and discards any direct payload.
+
+## 2026-07-10 — Production UI polish and responsive behavior
+
+- Kept the five files in `docs/design_refs/approved/` as the visual source of
+  truth. Shared navy, blue, coral, teal, lavender, amber, radius, and elevation
+  tokens remain the implementation boundary instead of screen-specific colors.
+- Constrained core content to 840 logical pixels and focused setup surfaces to
+  720 logical pixels. Header backgrounds still span wide windows, while text,
+  controls, and cards retain readable tablet and web proportions.
+- Treated widths below 390 logical pixels as compact phones. Home and Modes use
+  tighter header rhythm there, while Date Night keeps its calm single-surface
+  flow and remains vertically scrollable for larger text.
+- Added reduced-motion-aware route fades/slides, card press scale, mode-wheel
+  rotation, Food Wheel rotation, carousel dots, and shimmer skeletons. Motion is
+  removed when the platform requests reduced animation.
+- Kept production-like debug sessions free of monetization mock placements by
+  default. Labeled mock sponsored, rewarded, premium, and lead UI is now opt-in
+  with `GOMODE_MONETIZATION_DEBUG_UI=true` so approved-screen QA is not distorted.
+- Decode local hero and result images near their rendered pixel size to reduce
+  image-cache pressure. Data/service work remains outside widget build methods.
+- Added an integration-driver screenshot workflow that captures Home, Modes,
+  Date Night, Road Trip, and Saved into `docs/screenshots/current/`.
+- Validated the polished build on Android 17 and iOS 26.3 simulators. Flutter
+  currently warns that `cloud_functions` and `firebase_app_check` still apply
+  the Kotlin Gradle Plugin, and that `google_maps_flutter_ios` does not yet
+  support Swift Package Manager. Both platforms build and launch successfully;
+  these are upstream future-migration warnings rather than current blockers.

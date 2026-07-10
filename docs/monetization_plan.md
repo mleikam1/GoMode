@@ -21,9 +21,10 @@ as unconfigured, discards any payload it receives, and cannot start a purchase.
 | `leadFormsEnabled` | `GOMODE_LEAD_FORMS_ENABLED` | Off | Allows guarded lead-form UI. |
 | `sponsoredCardsEnabled` | `GOMODE_SPONSORED_CARDS_ENABLED` | Off | Allows native sponsored slots; also requires `adsEnabled`. |
 
-Debug builds use mock preview flags by default. Set
-`GOMODE_MONETIZATION_DEBUG_UI=false` to inspect the fully disabled experience.
-Mock service output is suppressed outside debug builds.
+Debug builds keep mock preview flags off by default so normal visual QA matches
+the production experience. Set `GOMODE_MONETIZATION_DEBUG_UI=true` to inspect
+the labeled mock placements. Mock service output is suppressed outside debug
+builds.
 
 Flags are only a presentation gate. Enabling a flag is not sufficient to ship a
 surface: the corresponding production service, policy review, store setup, and

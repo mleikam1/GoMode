@@ -70,6 +70,71 @@ final result: passed
 
 ---
 
+# Production Polish Final Design QA
+
+- Source visual truth: `docs/design_refs/approved/01_home.png`,
+  `02_modes_latest_large_category_carousels.png`,
+  `03_date_night_clean.png`, `04_road_trip_results.png`, and `05_saved.png`
+- Implementation screenshots: `docs/screenshots/current/home.png`, `modes.png`,
+  `date-night.png`, `road-trip.png`, and `saved.png`
+- Combined comparison evidence: `/private/tmp/gomode_design_qa/home.png`,
+  `modes.png`, `date-night.png`, `road-trip.png`, and `saved.png`
+- Viewport: 941 x 1672 physical pixels on Android, matching every approved
+  reference file exactly
+- State: light theme, Austin demo data, default filters, and each named primary
+  navigation destination
+
+## Full-view comparison evidence
+
+Each approved reference and its latest Android implementation capture were
+placed side by side at original resolution and inspected together. The final
+screens preserve the approved information hierarchy, palette, illustration
+subjects, surface shapes, control order, and bottom-navigation structure. No
+visible overflow stripe, clipped control, unintended overlap, or unreadable
+text remains.
+
+Home now keeps its category controls compact and horizontal, gives the wheel a
+prominent feature-card proportion, and shows four substantial Popular modes.
+Modes retains large feature cards with illustration-led artwork and page dots;
+the category cards below are true cards rather than pills. Date Night keeps a
+single calm setup surface with a fully visible primary action. Road Trip shows
+the complete three-stop result density and sticky route action. Saved preserves
+all four records and exposes Collections as the next scrollable section.
+
+## Required fidelity surfaces
+
+- Typography and contrast: strong navy-on-white and white-on-navy hierarchy,
+  restrained muted copy, and selected-state colors remain readable. System
+  font metrics differ slightly from the approved rounded display face (P3).
+- Spacing and proportions: headers, feature surfaces, card stacks, carousel
+  gaps, and navigation maintain the approved rhythm across the common viewport.
+- Assets: all visible illustration and photo subjects are project-local raster
+  assets decoded near their rendered size; no network placeholder appears.
+- Interaction: navigation, filters, wheels, favorites, segmented controls,
+  save actions, and primary calls to action remain functional. Press scale,
+  wheel spins, loading shimmer, route transitions, and page-dot motion honor
+  reduced-motion preferences.
+- Responsiveness and accessibility: widget coverage includes compact phones,
+  large phones, larger text, and tablet widths. Named controls expose semantics
+  and use approximately 44-48 logical-pixel targets.
+
+## Findings
+
+No actionable P0, P1, or P2 findings remain.
+
+## Follow-up polish
+
+- [P3] A future bundled rounded display font could close the remaining typeface
+  difference across all five screens.
+- [P3] Home's generated wheel illustration is intentionally simpler than the
+  approved rendered wheel asset while preserving its visual role and animation.
+- [P3] The Android screenshot surface omits iOS status-bar glyphs, so app content
+  begins slightly lower than the iPhone mock while retaining safe-area spacing.
+
+final result: passed
+
+---
+
 # Saved Design QA
 
 - Source visual truth: `docs/design_refs/approved/05_saved.png`

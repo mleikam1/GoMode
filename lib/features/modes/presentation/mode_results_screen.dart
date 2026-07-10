@@ -596,7 +596,9 @@ class _FoodWheelPanel extends StatelessWidget {
                 TweenAnimationBuilder<double>(
                   key: ValueKey('food-wheel-$turns'),
                   tween: Tween(begin: turns - 4, end: turns),
-                  duration: const Duration(milliseconds: 1200),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 1200),
                   curve: Curves.easeOutCubic,
                   builder: (context, value, child) {
                     return Transform.rotate(
@@ -1095,13 +1097,52 @@ class _LoadingResultsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _StateCard(
+    return ShimmerLoading(
       key: ValueKey('mode-results-loading-${mode.id}'),
-      icon: Icons.travel_explore_rounded,
-      color: mode.accentColor,
-      title: 'Finding useful options…',
-      message: 'Building a short list for ${mode.title}.',
-      progress: true,
+      semanticLabel: 'Finding useful options for ${mode.title}',
+      child: Column(
+        children: const [
+          SkeletonBox(height: 146, borderRadius: AppRadius.largeCard),
+          SizedBox(height: AppSpacing.xl),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SkeletonBox(width: 190, height: 24),
+          ),
+          SizedBox(height: AppSpacing.md),
+          _ModeResultSkeleton(),
+          SizedBox(height: AppSpacing.md),
+          _ModeResultSkeleton(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeResultSkeleton extends StatelessWidget {
+  const _ModeResultSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 150,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: AppRadius.largeCard,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SkeletonBox(width: 210, height: 21),
+          SizedBox(height: AppSpacing.sm),
+          SkeletonBox(height: 14),
+          SizedBox(height: AppSpacing.xs),
+          SkeletonBox(width: 240, height: 14),
+          Spacer(),
+          SkeletonBox(height: 42, borderRadius: AppRadius.chip),
+        ],
+      ),
     );
   }
 }
@@ -1162,7 +1203,6 @@ class _StateCard extends StatelessWidget {
     super.key,
     this.actionLabel,
     this.onAction,
-    this.progress = false,
   });
 
   final IconData icon;
@@ -1171,7 +1211,6 @@ class _StateCard extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
-  final bool progress;
 
   @override
   Widget build(BuildContext context) {
@@ -1200,10 +1239,6 @@ class _StateCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          if (progress) ...[
-            const SizedBox(height: AppSpacing.lg),
-            CircularProgressIndicator(color: color),
-          ],
           if (actionLabel != null) ...[
             const SizedBox(height: AppSpacing.lg),
             OutlinedButton.icon(

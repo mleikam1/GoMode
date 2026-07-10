@@ -5,6 +5,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../monetization/presentation/sponsored_card.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../domain/route_plan.dart';
 
 class RouteResultsList extends StatelessWidget {
@@ -67,7 +68,7 @@ class RouteResultsList extends StatelessWidget {
               placementId: 'road-trip-results',
               topSpacing: AppSpacing.sm,
             ),
-          if (index != stops.length - 1) const SizedBox(height: AppSpacing.sm),
+          if (index != stops.length - 1) const SizedBox(height: AppSpacing.xs),
         ],
       ],
     );
@@ -91,154 +92,159 @@ class _RouteStopCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: ValueKey('route-stop-${stop.id}'),
-      height: 132,
-      padding: const EdgeInsets.all(9),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: AppRadius.largeCard,
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
-        boxShadow: AppShadows.soft,
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final imageWidth = constraints.maxWidth >= 410 ? 143.0 : 112.0;
-          return Row(
-            children: [
-              SizedBox(
-                width: imageWidth,
-                height: double.infinity,
-                child: ClipRRect(
-                  borderRadius: AppRadius.mdBorder,
-                  child: Transform.scale(
-                    scale: stop.id == 'bucees-new-braunfels' ? 1.25 : 1,
-                    alignment: Alignment.bottomCenter,
-                    child: Image.asset(
-                      stop.imageAsset,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.high,
+    return PressScale(
+      child: Container(
+        key: ValueKey('route-stop-${stop.id}'),
+        height: 132,
+        padding: const EdgeInsets.all(9),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceRaised,
+          borderRadius: AppRadius.largeCard,
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
+          boxShadow: AppShadows.soft,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final imageWidth = constraints.maxWidth >= 410 ? 143.0 : 112.0;
+            final cacheWidth =
+                (imageWidth * MediaQuery.devicePixelRatioOf(context)).ceil();
+            return Row(
+              children: [
+                SizedBox(
+                  width: imageWidth,
+                  height: double.infinity,
+                  child: ClipRRect(
+                    borderRadius: AppRadius.mdBorder,
+                    child: Transform.scale(
+                      scale: stop.id == 'bucees-new-braunfels' ? 1.25 : 1,
+                      alignment: Alignment.bottomCenter,
+                      child: Image.asset(
+                        stop.imageAsset,
+                        fit: BoxFit.cover,
+                        cacheWidth: cacheWidth,
+                        filterQuality: FilterQuality.medium,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 27,
-                      child: Row(
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 27,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                stop.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 17,
+                                    ),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: IconButton(
+                                key: ValueKey('favorite-stop-${stop.id}'),
+                                tooltip: saved
+                                    ? 'Remove ${stop.title} from saved stops'
+                                    : 'Save ${stop.title}',
+                                onPressed: onFavorite,
+                                padding: EdgeInsets.zero,
+                                iconSize: 22,
+                                color: saved
+                                    ? AppColors.coral
+                                    : AppColors.textSecondary,
+                                icon: Icon(
+                                  saved
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _RatingRow(stop: stop),
+                      const SizedBox(height: 1),
+                      Text(
+                        '${_distanceLabel(stop.distanceOffRouteMiles)}  •  ${stop.locationLabel}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          _InfoPill(
+                            icon: Icons.schedule_rounded,
+                            label: stop.detourTime == null
+                                ? 'Detour not computed'
+                                : '${stop.detourTime!.inMinutes} min detour',
+                            color: AppColors.lavender,
+                          ),
+                          const SizedBox(width: 6),
+                          _InfoPill(
+                            icon: switch (stop.openNow) {
+                              true => Icons.check_circle_rounded,
+                              false => Icons.cancel_rounded,
+                              null => Icons.help_outline_rounded,
+                            },
+                            label: switch (stop.openNow) {
+                              true => 'Open now',
+                              false => 'Closed now',
+                              null => 'Hours unverified',
+                            },
+                            color: switch (stop.openNow) {
+                              true => AppColors.success,
+                              false => AppColors.coral,
+                              null => AppColors.textMuted,
+                            },
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              stop.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 17,
-                                  ),
+                            child: _StopActionButton(
+                              key: ValueKey('save-stop-${stop.id}'),
+                              label: saved ? 'Saved' : 'Save',
+                              icon: saved
+                                  ? Icons.bookmark_rounded
+                                  : Icons.bookmark_border_rounded,
+                              onTap: onSave,
                             ),
                           ),
-                          SizedBox(
-                            width: 34,
-                            height: 34,
-                            child: IconButton(
-                              key: ValueKey('favorite-stop-${stop.id}'),
-                              tooltip: saved
-                                  ? 'Remove ${stop.title} from saved stops'
-                                  : 'Save ${stop.title}',
-                              onPressed: onFavorite,
-                              padding: EdgeInsets.zero,
-                              iconSize: 22,
-                              color: saved
-                                  ? AppColors.coral
-                                  : AppColors.textSecondary,
-                              icon: Icon(
-                                saved
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                              ),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: _StopActionButton(
+                              key: ValueKey('navigate-stop-${stop.id}'),
+                              label: 'Navigate',
+                              icon: Icons.navigation_rounded,
+                              onTap: onNavigate,
+                              filled: true,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    _RatingRow(stop: stop),
-                    const SizedBox(height: 1),
-                    Text(
-                      '${_distanceLabel(stop.distanceOffRouteMiles)}  •  ${stop.locationLabel}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: 11.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        _InfoPill(
-                          icon: Icons.schedule_rounded,
-                          label: stop.detourTime == null
-                              ? 'Detour not computed'
-                              : '${stop.detourTime!.inMinutes} min detour',
-                          color: AppColors.lavender,
-                        ),
-                        const SizedBox(width: 6),
-                        _InfoPill(
-                          icon: switch (stop.openNow) {
-                            true => Icons.check_circle_rounded,
-                            false => Icons.cancel_rounded,
-                            null => Icons.help_outline_rounded,
-                          },
-                          label: switch (stop.openNow) {
-                            true => 'Open now',
-                            false => 'Closed now',
-                            null => 'Hours unverified',
-                          },
-                          color: switch (stop.openNow) {
-                            true => AppColors.success,
-                            false => AppColors.coral,
-                            null => AppColors.textMuted,
-                          },
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StopActionButton(
-                            key: ValueKey('save-stop-${stop.id}'),
-                            label: saved ? 'Saved' : 'Save',
-                            icon: saved
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
-                            onTap: onSave,
-                          ),
-                        ),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: _StopActionButton(
-                            key: ValueKey('navigate-stop-${stop.id}'),
-                            label: 'Navigate',
-                            icon: Icons.navigation_rounded,
-                            onTap: onNavigate,
-                            filled: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

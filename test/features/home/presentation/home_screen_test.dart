@@ -47,6 +47,11 @@ void main() {
     await tester.tap(
       find.widgetWithText(PrimaryGradientButton, 'Spin My Mode'),
     );
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.text('Picking a mode…'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-mode-wheel-4.75')), findsOneWidget);
+
     await tester.pumpAndSettle();
 
     expect(find.text('Budget'), findsOneWidget);

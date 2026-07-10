@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/primary_gradient_button.dart';
+import '../../../shared/widgets/responsive_content.dart';
 import '../../../services/api_client.dart';
 import '../data/date_night_planning_service.dart';
 import '../domain/date_night_preferences.dart';
@@ -42,43 +44,51 @@ class _DateNightSetupScreenState extends ConsumerState<DateNightSetupScreen> {
           ),
           SliverToBoxAdapter(
             child: Transform.translate(
-              offset: const Offset(0, -22),
+              offset: Offset.zero,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: _PlanningSurface(
-                  preferences: _preferences,
-                  isGenerating: _isGenerating,
-                  onBudgetChanged: (budget) {
-                    setState(() {
-                      _preferences = _preferences.copyWith(budget: budget);
-                    });
-                  },
-                  onVibeChanged: (vibe) {
-                    setState(() {
-                      _preferences = _preferences.copyWith(vibe: vibe);
-                    });
-                  },
-                  onDurationChanged: (duration) {
-                    setState(() {
-                      _preferences = _preferences.copyWith(duration: duration);
-                    });
-                  },
-                  onIndoorChanged: (value) {
-                    setState(() {
-                      _preferences = _preferences.copyWith(indoor: value);
-                    });
-                  },
-                  onOutdoorChanged: (value) {
-                    setState(() {
-                      _preferences = _preferences.copyWith(outdoor: value);
-                    });
-                  },
-                  onOpenNowChanged: (value) {
-                    setState(() {
-                      _preferences = _preferences.copyWith(openNow: value);
-                    });
-                  },
-                  onGenerate: _generatePlan,
+                child: ResponsiveContent(
+                  maxWidth: AppBreakpoints.focusedContent,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _PlanningSurface(
+                      preferences: _preferences,
+                      isGenerating: _isGenerating,
+                      onBudgetChanged: (budget) {
+                        setState(() {
+                          _preferences = _preferences.copyWith(budget: budget);
+                        });
+                      },
+                      onVibeChanged: (vibe) {
+                        setState(() {
+                          _preferences = _preferences.copyWith(vibe: vibe);
+                        });
+                      },
+                      onDurationChanged: (duration) {
+                        setState(() {
+                          _preferences = _preferences.copyWith(
+                            duration: duration,
+                          );
+                        });
+                      },
+                      onIndoorChanged: (value) {
+                        setState(() {
+                          _preferences = _preferences.copyWith(indoor: value);
+                        });
+                      },
+                      onOutdoorChanged: (value) {
+                        setState(() {
+                          _preferences = _preferences.copyWith(outdoor: value);
+                        });
+                      },
+                      onOpenNowChanged: (value) {
+                        setState(() {
+                          _preferences = _preferences.copyWith(openNow: value);
+                        });
+                      },
+                      onGenerate: _generatePlan,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -143,60 +153,68 @@ class _DateNightHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: AppColors.headerGradient,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(AppRadius.xxl),
-          bottomRight: Radius.circular(AppRadius.xxl),
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
-          child: Column(
-            children: [
-              SizedBox(
-                height: 52,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: _RoundHeaderButton(
-                        tooltip: 'Back',
-                        icon: Icons.arrow_back_rounded,
-                        onTap: onBack,
-                      ),
-                    ),
-                    Text(
-                      'Date Night',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w900,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: AppColors.headerGradient,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(AppRadius.xxl),
+            bottomRight: Radius.circular(AppRadius.xxl),
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: ResponsiveContent(
+            maxWidth: AppBreakpoints.focusedContent,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 52,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: _RoundHeaderButton(
+                            tooltip: 'Back',
+                            icon: Icons.arrow_back_rounded,
+                            onTap: onBack,
                           ),
+                        ),
+                        Text(
+                          'Date Night',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: _RoundHeaderButton(
+                            tooltip: favorite
+                                ? 'Remove from favorites'
+                                : 'Add to favorites',
+                            icon: favorite
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            iconColor: AppColors.coral,
+                            onTap: onFavorite,
+                          ),
+                        ),
+                      ],
                     ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _RoundHeaderButton(
-                        tooltip: favorite
-                            ? 'Remove from favorites'
-                            : 'Add to favorites',
-                        icon: favorite
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        iconColor: AppColors.coral,
-                        onTap: onFavorite,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 6),
+                  const _DateNightHero(),
+                ],
               ),
-              const SizedBox(height: 14),
-              const _DateNightHero(),
-            ],
+            ),
           ),
         ),
       ),
@@ -245,8 +263,13 @@ class _DateNightHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final logicalWidth = MediaQuery.sizeOf(
+      context,
+    ).width.clamp(0, AppBreakpoints.focusedContent);
+    final cacheWidth = (logicalWidth * MediaQuery.devicePixelRatioOf(context))
+        .ceil();
     return Container(
-      height: 184,
+      height: 174,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(0xFFFFEDF3),
@@ -260,6 +283,8 @@ class _DateNightHero extends StatelessWidget {
             'assets/images/date_night_hero.png',
             fit: BoxFit.cover,
             alignment: Alignment.center,
+            cacheWidth: cacheWidth,
+            filterQuality: FilterQuality.medium,
           ),
           Positioned(
             left: 18,
@@ -338,7 +363,7 @@ class _PlanningSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 16),
+      padding: const EdgeInsets.fromLTRB(14, 11, 14, 10),
       decoration: BoxDecoration(
         color: AppColors.surfaceRaised,
         borderRadius: AppRadius.largeCard,
@@ -357,7 +382,7 @@ class _PlanningSurface extends StatelessWidget {
             keyPrefix: 'budget',
             onSelected: onBudgetChanged,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _ControlSection<DateNightVibe>(
             title: 'Vibe',
             icon: Icons.favorite_border_rounded,
@@ -372,7 +397,7 @@ class _PlanningSurface extends StatelessWidget {
             keyPrefix: 'vibe',
             onSelected: onVibeChanged,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _ControlSection<DateNightDuration>(
             title: 'Time',
             icon: Icons.schedule_rounded,
@@ -382,23 +407,23 @@ class _PlanningSurface extends StatelessWidget {
             keyPrefix: 'time',
             onSelected: onDurationChanged,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _TogglePanel(
             preferences: preferences,
             onIndoorChanged: onIndoorChanged,
             onOutdoorChanged: onOutdoorChanged,
             onOpenNowChanged: onOpenNowChanged,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           const _TonightPlanPreview(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           PrimaryGradientButton(
             key: const ValueKey('generate-date-night-button'),
             label: isGenerating
                 ? 'Creating your night...'
                 : 'Generate My Night',
             icon: Icons.auto_awesome_rounded,
-            height: 48,
+            height: 44,
             onPressed: isGenerating ? null : onGenerate,
           ),
         ],
@@ -507,44 +532,55 @@ class _ChoicePill extends StatelessWidget {
         child: InkWell(
           borderRadius: AppRadius.chip,
           onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            height: 34,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.coral.withValues(alpha: 0.09)
-                  : AppColors.white,
-              borderRadius: AppRadius.chip,
-              border: Border.all(
-                color: selected ? AppColors.coral : AppColors.borderStrong,
-                width: selected ? 1.4 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(
-                    icon,
-                    color: selected ? AppColors.coral : AppColors.textPrimary,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 5),
-                ],
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: selected ? AppColors.coral : AppColors.textPrimary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                    ),
+          child: SizedBox(
+            height: 44,
+            child: Align(
+              child: AnimatedContainer(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 160),
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.coral.withValues(alpha: 0.09)
+                      : AppColors.white,
+                  borderRadius: AppRadius.chip,
+                  border: Border.all(
+                    color: selected ? AppColors.coral : AppColors.borderStrong,
+                    width: selected ? 1.4 : 1,
                   ),
                 ),
-              ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(
+                        icon,
+                        color: selected
+                            ? AppColors.coral
+                            : AppColors.textPrimary,
+                        size: 19,
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: selected
+                              ? AppColors.coral
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -677,6 +713,10 @@ class _TonightPlanPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final previewHeight = (54 + (textScale - 1) * 22)
+        .clamp(54.0, 66.0)
+        .toDouble();
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -692,7 +732,7 @@ class _TonightPlanPreview extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Container(
-            height: 54,
+            height: previewHeight,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               color: AppColors.white,

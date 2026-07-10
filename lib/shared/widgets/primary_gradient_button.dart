@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
+import 'app_motion.dart';
 
 class PrimaryGradientButton extends StatelessWidget {
   const PrimaryGradientButton({
@@ -60,14 +61,22 @@ class PrimaryGradientButton extends StatelessWidget {
       ),
     );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: AppRadius.chip,
-        onTap: onPressed,
-        child: expanded
-            ? SizedBox(width: double.infinity, child: content)
-            : content,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: PressScale(
+        enabled: enabled,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: AppRadius.chip,
+            onTap: onPressed,
+            child: expanded
+                ? SizedBox(width: double.infinity, child: content)
+                : content,
+          ),
+        ),
       ),
     );
   }

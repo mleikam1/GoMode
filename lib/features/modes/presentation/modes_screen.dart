@@ -31,7 +31,7 @@ class _ModesScreenState extends ConsumerState<ModesScreen> {
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    _topModesController = PageController(viewportFraction: 0.62);
+    _topModesController = PageController(viewportFraction: 0.54);
   }
 
   @override
@@ -59,6 +59,8 @@ class _ModesScreenState extends ConsumerState<ModesScreen> {
           .latestByCategory(category)
           .any((mode) => visibleModeIds.contains(mode.id));
     }).toList();
+    final compactPhone =
+        MediaQuery.sizeOf(context).width < AppBreakpoints.compactPhone;
 
     return ColoredBox(
       color: AppColors.surface,
@@ -66,6 +68,7 @@ class _ModesScreenState extends ConsumerState<ModesScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: GradientHeader(
+              compact: compactPhone,
               title: 'Modes',
               subtitle: 'Choose what you want to do',
               bottom: _ModesHeaderControls(
@@ -282,6 +285,7 @@ class _ModesHeaderControls extends StatelessWidget {
                   label: _quickFilters[index].label,
                   icon: _quickFilters[index].icon,
                   color: _quickFilters[index].color,
+                  compact: true,
                   selected: selectedFilter == _quickFilters[index].filter,
                   onDark: true,
                   onTap: () => onFilterSelected(_quickFilters[index].filter),
@@ -316,41 +320,46 @@ class _TopModesCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(title: 'Top modes', onActionTap: onSeeAllTap),
-        const SizedBox(height: AppSpacing.sm),
-        SizedBox(
-          height: 224,
-          child: PageView.builder(
-            controller: controller,
-            clipBehavior: Clip.none,
-            padEnds: false,
-            onPageChanged: onPageChanged,
-            itemCount: modes.length,
-            itemBuilder: (context, index) {
-              final mode = modes[index];
-              return Padding(
-                padding: EdgeInsets.only(
-                  left: index == 0 ? AppSpacing.page : AppSpacing.xs,
-                  right: AppSpacing.xs,
-                ),
-                child: _FeaturedDiscoveryModeCard(
-                  key: ValueKey('featured-mode-card-${mode.id}'),
-                  mode: mode,
-                  onTap: () => onModeTap(mode),
-                ),
-              );
-            },
+    return ResponsiveContent(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(title: 'Top modes', onActionTap: onSeeAllTap),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            height: 178,
+            child: PageView.builder(
+              controller: controller,
+              clipBehavior: Clip.none,
+              padEnds: false,
+              onPageChanged: onPageChanged,
+              itemCount: modes.length,
+              itemBuilder: (context, index) {
+                final mode = modes[index];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    left: index == 0 ? AppSpacing.page : AppSpacing.xs,
+                    right: AppSpacing.xs,
+                  ),
+                  child: _FeaturedDiscoveryModeCard(
+                    key: ValueKey('featured-mode-card-${mode.id}'),
+                    mode: mode,
+                    onTap: () => onModeTap(mode),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Padding(
-          padding: const EdgeInsets.only(left: AppSpacing.page),
-          child: _PaginationDots(count: modes.length, activeIndex: currentPage),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.only(left: AppSpacing.page),
+            child: _PaginationDots(
+              count: modes.length,
+              activeIndex: currentPage,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -370,44 +379,52 @@ class _ModeCategorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final contentWidth = constraints.maxWidth - AppSpacing.page * 2;
-        final visibleCards = constraints.maxWidth < 390 ? 2.05 : 2.28;
-        final rawCardWidth =
-            (contentWidth - AppSpacing.sm * (visibleCards - 1)) / visibleCards;
-        final cardWidth = rawCardWidth.clamp(142.0, 236.0);
+    return ResponsiveContent(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final contentWidth = constraints.maxWidth - AppSpacing.page * 2;
+          final visibleCards =
+              constraints.maxWidth < AppBreakpoints.compactPhone
+              ? 2.05
+              : constraints.maxWidth < AppBreakpoints.tablet
+              ? 2.75
+              : 3.2;
+          final rawCardWidth =
+              (contentWidth - AppSpacing.sm * (visibleCards - 1)) /
+              visibleCards;
+          final cardWidth = rawCardWidth.clamp(142.0, 236.0);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionHeader(title: title, onActionTap: onSeeAllTap),
-            const SizedBox(height: AppSpacing.sm),
-            SizedBox(
-              height: 122,
-              child: ListView.separated(
-                clipBehavior: Clip.none,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.page,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionHeader(title: title, onActionTap: onSeeAllTap),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                height: 122,
+                child: ListView.separated(
+                  clipBehavior: Clip.none,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.page,
+                  ),
+                  itemBuilder: (context, index) {
+                    final mode = modes[index];
+                    return _CategoryDiscoveryModeCard(
+                      key: ValueKey('category-mode-card-${mode.id}'),
+                      mode: mode,
+                      width: cardWidth.toDouble(),
+                      onTap: () => onModeTap(mode),
+                    );
+                  },
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: AppSpacing.sm),
+                  itemCount: modes.length,
                 ),
-                itemBuilder: (context, index) {
-                  final mode = modes[index];
-                  return _CategoryDiscoveryModeCard(
-                    key: ValueKey('category-mode-card-${mode.id}'),
-                    mode: mode,
-                    width: cardWidth.toDouble(),
-                    onTap: () => onModeTap(mode),
-                  );
-                },
-                separatorBuilder: (context, index) =>
-                    const SizedBox(width: AppSpacing.sm),
-                itemCount: modes.length,
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -470,88 +487,94 @@ class _FeaturedDiscoveryModeCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: _cardSemanticLabel(mode),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: AppRadius.xlBorder,
-          onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
-              borderRadius: AppRadius.xlBorder,
-              border: Border.all(color: AppColors.white.withValues(alpha: 0.8)),
-              boxShadow: AppShadows.card,
-            ),
-            child: ClipRRect(
-              borderRadius: AppRadius.xlBorder,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: modeIllustrationFor(
-                      mode,
-                      borderRadius: BorderRadius.zero,
+      child: PressScale(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: AppRadius.xlBorder,
+            onTap: onTap,
+            child: Ink(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceRaised,
+                borderRadius: AppRadius.xlBorder,
+                border: Border.all(
+                  color: AppColors.white.withValues(alpha: 0.8),
+                ),
+                boxShadow: AppShadows.card,
+              ),
+              child: ClipRRect(
+                borderRadius: AppRadius.xlBorder,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: modeIllustrationFor(
+                        mode,
+                        borderRadius: BorderRadius.zero,
+                      ),
                     ),
-                  ),
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.white.withValues(alpha: 0.94),
-                            AppColors.white.withValues(alpha: 0.60),
-                            AppColors.white.withValues(alpha: 0.12),
-                          ],
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.white.withValues(alpha: 0.94),
+                              AppColors.white.withValues(alpha: 0.60),
+                              AppColors.white.withValues(alpha: 0.12),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            SoftIconBadge(
-                              icon: ModeCatalog.iconFor(mode.iconSemanticName),
-                              color: mode.accentColor,
-                              size: 58,
-                              iconSize: 31,
-                            ),
-                            const Spacer(),
-                            _CircleArrow(color: mode.accentColor),
-                          ],
-                        ),
-                        const Spacer(),
-                        Text(
-                          mode.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w900,
-                                height: 1.05,
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              SoftIconBadge(
+                                icon: ModeCatalog.iconFor(
+                                  mode.iconSemanticName,
+                                ),
+                                color: mode.accentColor,
+                                size: 58,
+                                iconSize: 31,
                               ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          mode.shortSubtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: AppColors.navy800,
-                                fontWeight: FontWeight.w700,
-                                height: 1.16,
-                              ),
-                        ),
-                      ],
+                              const Spacer(),
+                              _CircleArrow(color: mode.accentColor),
+                            ],
+                          ),
+                          const Spacer(),
+                          Text(
+                            mode.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.05,
+                                ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            mode.shortSubtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.navy800,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.16,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -580,73 +603,77 @@ class _CategoryDiscoveryModeCard extends StatelessWidget {
       child: Semantics(
         button: true,
         label: _cardSemanticLabel(mode),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: AppRadius.card,
-            onTap: onTap,
-            child: Ink(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceRaised,
-                borderRadius: AppRadius.card,
-                border: Border.all(color: AppColors.border),
-                boxShadow: AppShadows.soft,
-              ),
-              child: ClipRRect(
-                borderRadius: AppRadius.card,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _CategoryCardPainter(mode.accentColor),
+        child: PressScale(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: AppRadius.card,
+              onTap: onTap,
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceRaised,
+                  borderRadius: AppRadius.card,
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: AppShadows.soft,
+                ),
+                child: ClipRRect(
+                  borderRadius: AppRadius.card,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _CategoryCardPainter(mode.accentColor),
+                        ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Row(
-                        children: [
-                          SoftIconBadge(
-                            icon: ModeCatalog.iconFor(mode.iconSemanticName),
-                            color: mode.accentColor,
-                            size: 54,
-                            iconSize: 28,
-                            showShadow: false,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  mode.title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleSmall
-                                      ?.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.w900,
-                                        height: 1.05,
-                                      ),
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  mode.shortSubtitle,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: AppColors.navy800,
-                                        height: 1.16,
-                                      ),
-                                ),
-                              ],
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        child: Row(
+                          children: [
+                            SoftIconBadge(
+                              icon: ModeCatalog.iconFor(mode.iconSemanticName),
+                              color: mode.accentColor,
+                              size: 54,
+                              iconSize: 28,
+                              showShadow: false,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    mode.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w900,
+                                          height: 1.05,
+                                        ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    mode.shortSubtitle,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: AppColors.navy800,
+                                          height: 1.16,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -665,22 +692,30 @@ class _PaginationDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var index = 0; index < count; index++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: index == activeIndex ? 10 : 9,
-            height: index == activeIndex ? 10 : 9,
-            margin: const EdgeInsets.only(right: AppSpacing.xs),
-            decoration: BoxDecoration(
-              color: index == activeIndex
-                  ? AppColors.primaryBlue
-                  : AppColors.borderStrong,
-              shape: BoxShape.circle,
-            ),
-          ),
-      ],
+    return Semantics(
+      label: 'Carousel page ${activeIndex + 1} of $count',
+      child: ExcludeSemantics(
+        child: Row(
+          children: [
+            for (var index = 0; index < count; index++)
+              AnimatedContainer(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                width: index == activeIndex ? 20 : 9,
+                height: 9,
+                margin: const EdgeInsets.only(right: AppSpacing.xs),
+                decoration: BoxDecoration(
+                  color: index == activeIndex
+                      ? AppColors.primaryBlue
+                      : AppColors.borderStrong,
+                  borderRadius: AppRadius.chip,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

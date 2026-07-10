@@ -9,7 +9,7 @@ const _sponsoredCardsEnabled = bool.fromEnvironment(
 );
 const _debugMockUiEnabled = bool.fromEnvironment(
   'GOMODE_MONETIZATION_DEBUG_UI',
-  defaultValue: true,
+  defaultValue: false,
 );
 
 @immutable

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -10,7 +11,9 @@ import '../../../features/saved/application/saved_library_controller.dart';
 import '../../../features/saved/domain/saved_item.dart';
 import '../../../features/monetization/domain/monetization_models.dart';
 import '../../../features/monetization/presentation/rewarded_unlock_button.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../../../shared/widgets/primary_gradient_button.dart';
+import '../../../shared/widgets/responsive_content.dart';
 import '../data/road_trip_route_service.dart';
 import '../data/route_stop_store.dart';
 import '../domain/route_plan.dart';
@@ -63,7 +66,7 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
             if (snapshot.hasError) {
               return _RouteLoadError(onBack: _goBack, onTryAgain: _retryRoute);
             }
-            return const Center(child: CircularProgressIndicator());
+            return const _RoadTripLoadingState();
           }
 
           final visibleStops = _selectedFilters.isEmpty
@@ -101,29 +104,34 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
                       0,
                     ),
                     sliver: SliverToBoxAdapter(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        child: _selectedView == RoadTripView.results
-                            ? Column(
-                                key: const ValueKey('route-results-list'),
-                                children: [
-                                  RouteResultsList(
-                                    stops: visibleStops,
-                                    savedStopIds: savedStopIds,
-                                    onSave: _toggleSaved,
-                                    onFavorite: _toggleSaved,
-                                    onNavigate: _navigateToStop,
-                                  ),
-                                  const RewardedUnlockButton(
-                                    unlock: RewardedUnlock.extraRoadTripStops(),
-                                  ),
-                                ],
-                              )
-                            : RouteMapPlaceholder(
-                                key: const ValueKey('route-map-view'),
-                                plan: plan,
-                                onOpenFullMap: () => context.go('/map'),
-                              ),
+                      child: ResponsiveContent(
+                        child: AnimatedSwitcher(
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 220),
+                          child: _selectedView == RoadTripView.results
+                              ? Column(
+                                  key: const ValueKey('route-results-list'),
+                                  children: [
+                                    RouteResultsList(
+                                      stops: visibleStops,
+                                      savedStopIds: savedStopIds,
+                                      onSave: _toggleSaved,
+                                      onFavorite: _toggleSaved,
+                                      onNavigate: _navigateToStop,
+                                    ),
+                                    const RewardedUnlockButton(
+                                      unlock:
+                                          RewardedUnlock.extraRoadTripStops(),
+                                    ),
+                                  ],
+                                )
+                              : RouteMapPlaceholder(
+                                  key: const ValueKey('route-map-view'),
+                                  plan: plan,
+                                  onOpenFullMap: () => context.go('/map'),
+                                ),
+                        ),
                       ),
                     ),
                   ),
@@ -131,21 +139,28 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
                 ],
               ),
               Positioned(
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: AppSpacing.bottomNavHeight,
-                child: PrimaryGradientButton(
-                  key: const ValueKey('open-route-map-button'),
-                  label: 'Open Route Map',
-                  icon: Icons.map_outlined,
-                  height: 38,
-                  onPressed: () {
-                    if (_selectedView == RoadTripView.map) {
-                      context.go('/map');
-                    } else {
-                      setState(() => _selectedView = RoadTripView.map);
-                    }
-                  },
+                left: 0,
+                right: 0,
+                bottom: MediaQuery.paddingOf(context).bottom,
+                child: ResponsiveContent(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                    ),
+                    child: PrimaryGradientButton(
+                      key: const ValueKey('open-route-map-button'),
+                      label: 'Open Route Map',
+                      icon: Icons.map_outlined,
+                      height: 44,
+                      onPressed: () {
+                        if (_selectedView == RoadTripView.map) {
+                          context.go('/map');
+                        } else {
+                          setState(() => _selectedView = RoadTripView.map);
+                        }
+                      },
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -270,143 +285,154 @@ class _RoadTripHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final safeTop = MediaQuery.paddingOf(context).top;
     final summaryTop = safeTop + 126;
-    final selectorInset = MediaQuery.sizeOf(context).width >= 440 ? 76.0 : 58.0;
+    final width = MediaQuery.sizeOf(context).width;
+    final centeredInset = ((width - AppBreakpoints.readableContent) / 2)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final selectorInset = width >= 440 ? 76.0 : 58.0;
 
-    return SizedBox(
-      height: summaryTop + 154,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 0,
-            top: 0,
-            right: 0,
-            height: summaryTop + 123,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: AppColors.headerGradient,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(AppRadius.xxl),
-                  bottomRight: Radius.circular(AppRadius.xxl),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: SizedBox(
+        height: summaryTop + 154,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              right: 0,
+              height: summaryTop + 123,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: AppColors.headerGradient,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(AppRadius.xxl),
+                    bottomRight: Radius.circular(AppRadius.xxl),
+                  ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            left: AppSpacing.page,
-            right: AppSpacing.page,
-            top: safeTop + AppSpacing.sm,
-            height: 58,
-            child: Row(
-              children: [
-                _HeaderButton(
-                  key: const ValueKey('road-trip-back-button'),
-                  icon: Icons.arrow_back_rounded,
-                  onTap: onBack,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Road Trip Stops',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 24,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.directions_car_rounded,
-                            size: 17,
-                            color: AppColors.lavender,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              plan.routeSubtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.white.withValues(
-                                      alpha: 0.72,
-                                    ),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                          ),
-                          if (plan.isDemo) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              key: const ValueKey('road-trip-demo-fallback'),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 3,
+            Positioned(
+              left: centeredInset + AppSpacing.page,
+              right: centeredInset + AppSpacing.page,
+              top: safeTop + AppSpacing.sm,
+              height: 58,
+              child: Row(
+                children: [
+                  _HeaderButton(
+                    key: const ValueKey('road-trip-back-button'),
+                    icon: Icons.arrow_back_rounded,
+                    onTap: onBack,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Road Trip Stops',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 24,
                               ),
-                              decoration: BoxDecoration(
-                                color: AppColors.white.withValues(alpha: 0.12),
-                                borderRadius: AppRadius.chip,
-                                border: Border.all(
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.directions_car_rounded,
+                              size: 17,
+                              color: AppColors.lavender,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                plan.routeSubtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: AppColors.white.withValues(
+                                        alpha: 0.72,
+                                      ),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                            if (plan.isDemo) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                key: const ValueKey('road-trip-demo-fallback'),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
                                   color: AppColors.white.withValues(
-                                    alpha: 0.18,
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: AppRadius.chip,
+                                  border: Border.all(
+                                    color: AppColors.white.withValues(
+                                      alpha: 0.18,
+                                    ),
                                   ),
                                 ),
+                                child: Text(
+                                  'Demo',
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color: AppColors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 9,
+                                      ),
+                                ),
                               ),
-                              child: Text(
-                                'Demo fallback',
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      color: AppColors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 9,
-                                    ),
-                              ),
-                            ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                const _HeaderButton(
-                  icon: Icons.notifications_none_rounded,
-                  showNotification: true,
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.sm),
+                  const _HeaderButton(
+                    icon: Icons.notifications_none_rounded,
+                    showNotification: true,
+                  ),
+                ],
+              ),
             ),
-          ),
-          Positioned(
-            left: selectorInset,
-            right: selectorInset,
-            top: safeTop + 76,
-            height: 46,
-            child: _ViewSelector(
-              selectedView: selectedView,
-              onChanged: onViewChanged,
+            Positioned(
+              left: centeredInset + selectorInset,
+              right: centeredInset + selectorInset,
+              top: safeTop + 76,
+              height: 46,
+              child: _ViewSelector(
+                selectedView: selectedView,
+                onChanged: onViewChanged,
+              ),
             ),
-          ),
-          Positioned(
-            left: AppSpacing.page,
-            right: AppSpacing.page,
-            top: summaryTop,
-            height: 154,
-            child: _RouteSummaryCard(
-              summary: plan.summary,
-              selectedFilters: selectedFilters,
-              onFilterChanged: onFilterChanged,
+            Positioned(
+              left: centeredInset + AppSpacing.page,
+              right: centeredInset + AppSpacing.page,
+              top: summaryTop,
+              height: 154,
+              child: _RouteSummaryCard(
+                summary: plan.summary,
+                selectedFilters: selectedFilters,
+                onFilterChanged: onFilterChanged,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -862,6 +888,124 @@ class _FilterChip extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RoadTripLoadingState extends StatelessWidget {
+  const _RoadTripLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: CustomScrollView(
+        key: const ValueKey('road-trip-loading-skeleton'),
+        physics: const NeverScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              height: 244,
+              decoration: const BoxDecoration(
+                gradient: AppColors.headerGradient,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(AppRadius.xxl),
+                  bottomRight: Radius.circular(AppRadius.xxl),
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: ResponsiveContent(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.page),
+                    child: ShimmerLoading(
+                      semanticLabel: 'Loading road trip stops',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          SkeletonBox(width: 230, height: 28),
+                          SizedBox(height: AppSpacing.sm),
+                          SkeletonBox(width: 180, height: 16),
+                          SizedBox(height: AppSpacing.lg),
+                          Center(child: SkeletonBox(width: 280, height: 46)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Transform.translate(
+              offset: const Offset(0, -62),
+              child: ResponsiveContent(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.page,
+                  ),
+                  child: ShimmerLoading(
+                    semanticLabel: 'Loading route suggestions',
+                    child: Column(
+                      children: const [
+                        SkeletonBox(
+                          height: 154,
+                          borderRadius: AppRadius.xlBorder,
+                        ),
+                        SizedBox(height: AppSpacing.sm),
+                        _RoadTripStopSkeleton(),
+                        SizedBox(height: AppSpacing.sm),
+                        _RoadTripStopSkeleton(),
+                        SizedBox(height: AppSpacing.sm),
+                        _RoadTripStopSkeleton(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoadTripStopSkeleton extends StatelessWidget {
+  const _RoadTripStopSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: AppRadius.largeCard,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Row(
+        children: [
+          SkeletonBox(width: 112, height: double.infinity),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBox(height: 20),
+                SizedBox(height: AppSpacing.xs),
+                SkeletonBox(width: 150, height: 12),
+                SizedBox(height: AppSpacing.xs),
+                SkeletonBox(height: 12),
+                Spacer(),
+                SkeletonBox(height: 34, borderRadius: AppRadius.chip),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

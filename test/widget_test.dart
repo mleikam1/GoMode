@@ -31,7 +31,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Top modes'), findsOneWidget);
-    expect(find.text('Date Night'), findsOneWidget);
+    expect(find.text('Date Night'), findsWidgets);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -220));
     await tester.pumpAndSettle();
     expect(find.text('Go Out'), findsOneWidget);
