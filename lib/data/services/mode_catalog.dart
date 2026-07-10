@@ -10,9 +10,77 @@ final modeCatalogProvider = Provider<ModeCatalog>((ref) {
 class ModeCatalog {
   const ModeCatalog();
 
+  static const featuredModeIds = <String>[
+    'date-night',
+    'weekend-plan',
+    'road-trip-stops',
+    'local-quest',
+  ];
+
+  static const discoveryCategories = <ModeCategory>[
+    ModeCategory.goOut,
+    ModeCategory.familyPets,
+    ModeCategory.road,
+    ModeCategory.healthOutdoors,
+    ModeCategory.homeLife,
+  ];
+
+  static const discoveryCategoryModeIds = <ModeCategory, List<String>>{
+    ModeCategory.goOut: [
+      'food-wheel',
+      'patio-finder',
+      'food-challenge',
+      'date-night',
+      'weekend-plan',
+      'cheap-date',
+      'tourist-mode',
+    ],
+    ModeCategory.familyPets: [
+      'kids-bored-button',
+      'dog-friendly-spots',
+      'rainy-day-ideas',
+    ],
+    ModeCategory.road: ['road-trip-stops', 'ev-charge-chill', 'road-rescue'],
+    ModeCategory.healthOutdoors: [
+      'allergy-map',
+      'clean-air-planner',
+      'outdoor-ideas',
+    ],
+    ModeCategory.homeLife: [
+      'solar-checker',
+      'neighborhood-check',
+      'where-should-i-live',
+    ],
+  };
+
   List<DiscoveryMode> get modes => discoveryModes;
 
   List<ModeCategory> get categories => ModeCategory.values;
+
+  List<DiscoveryMode> get featuredModes => modesByIds(featuredModeIds);
+
+  List<ModeCategory> get latestDiscoveryCategories => discoveryCategories;
+
+  List<DiscoveryMode> latestByCategory(ModeCategory category) {
+    final ids = discoveryCategoryModeIds[category];
+    if (ids == null) {
+      return const [];
+    }
+    return modesByIds(ids);
+  }
+
+  List<DiscoveryMode> get latestDiscoverableModes {
+    final ordered = <String, DiscoveryMode>{};
+    for (final mode in featuredModes) {
+      ordered[mode.id] = mode;
+    }
+    for (final category in latestDiscoveryCategories) {
+      for (final mode in latestByCategory(category)) {
+        ordered[mode.id] = mode;
+      }
+    }
+    return ordered.values.toList();
+  }
 
   List<DiscoveryMode> byCategory(ModeCategory category) {
     return modes.where((mode) => mode.category == category).toList();
@@ -33,6 +101,10 @@ class ModeCatalog {
       throw StateError('Unknown discovery mode: $id');
     }
     return mode;
+  }
+
+  List<DiscoveryMode> modesByIds(List<String> ids) {
+    return [for (final id in ids) modeById(id)];
   }
 
   List<DiscoveryMode> get savingModes {
@@ -61,6 +133,7 @@ class ModeCatalog {
       'location_city' => Icons.location_city_rounded,
       'lunch_dining' => Icons.lunch_dining_rounded,
       'pets' => Icons.pets_rounded,
+      'forest' => Icons.forest_rounded,
       'savings' => Icons.savings_rounded,
       'schedule' => Icons.schedule_rounded,
       'umbrella' => Icons.umbrella_rounded,

@@ -9,6 +9,16 @@ void main() {
     expect(catalog.modes, hasLength(20));
   });
 
+  test('latest Modes screen exposes exactly 20 discoverable modes', () {
+    final catalogIds = catalog.modes.map((mode) => mode.id).toSet();
+    final discoveryIds = catalog.latestDiscoverableModes
+        .map((mode) => mode.id)
+        .toSet();
+
+    expect(discoveryIds, hasLength(20));
+    expect(discoveryIds, catalogIds);
+  });
+
   test('every mode id is unique', () {
     final ids = catalog.modes.map((mode) => mode.id).toList();
     expect(ids.toSet(), hasLength(ids.length));

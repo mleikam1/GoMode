@@ -25,6 +25,7 @@ Widget demoIllustrationFor(
     'road-rescue' => RoadTripIllustration(borderRadius: borderRadius),
     'allergy' ||
     'air' ||
+    'outdoor' ||
     'solar' => AllergyOutdoorIllustration(borderRadius: borderRadius),
     'quest' ||
     'tourist' ||

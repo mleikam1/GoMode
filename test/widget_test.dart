@@ -20,10 +20,18 @@ void main() {
     await tester.tap(find.text('Modes'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Go Out'), findsOneWidget);
+    expect(find.text('Top modes'), findsOneWidget);
     expect(find.text('Date Night'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -220));
+    await tester.pumpAndSettle();
+    expect(find.text('Go Out'), findsOneWidget);
 
-    await tester.tap(find.text('Date Night'));
+    final dateNightCard = find.byKey(
+      const ValueKey('featured-mode-card-date-night'),
+    );
+    await tester.ensureVisible(dateNightCard);
+    await tester.pumpAndSettle();
+    await tester.tap(dateNightCard);
     await tester.pumpAndSettle();
 
     expect(find.text('Preview results'), findsOneWidget);

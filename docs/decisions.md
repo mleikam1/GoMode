@@ -45,3 +45,9 @@
 - Implemented the approved Home screen with reusable shared widgets and catalog-backed navigation instead of static screenshots or route placeholders.
 - Kept the Home weather signal as an injectable placeholder string until live weather or environmental data exists; the spin demo maps rainy placeholder values to Rainy Day Ideas.
 - Used simple weighted demo rules for Spin My Mode with explicit user intent first: active Road Trip filter, rainy placeholder, evening Date Night, weekend Weekend Plan, then a local random fallback.
+
+## 2026-07-10 Modes Discovery Screen
+
+- Treated `02_modes_latest_large_category_carousels.png` as the current Modes reference and replaced the dense catalog layout with a featured `PageView` plus wider horizontal category carousels.
+- Kept Popular as the default discovery landing so all 20 catalog modes remain discoverable; Nearby, Family, Road, Health, search, and category See all states narrow the visible mode set.
+- Replaced the prior Open Now catalog slot with the approved Outdoor Ideas mode to match the latest Health & Outdoors section while preserving the 20-mode catalog size.
