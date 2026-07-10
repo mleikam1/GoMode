@@ -76,7 +76,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Discover worthwhile food'), findsOneWidget);
+    expect(find.text('Road Trip Stops'), findsOneWidget);
+    expect(find.text('Austin to San Antonio'), findsOneWidget);
   });
 
   testWidgets('Popular mode card tap opens mode detail', (tester) async {

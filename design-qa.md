@@ -67,3 +67,84 @@ No actionable P0, P1, or P2 findings remain.
 - [P3] A future app-wide font asset could more closely match the reference's rounded display typography, but changing global typography is outside this focused Date Night milestone.
 
 final result: passed
+
+---
+
+# Road Trip Stops Design QA
+
+- Source visual truth: `docs/design_refs/approved/04_road_trip_results.png`
+- Implementation screenshot: `/private/tmp/gomode_road_trip_471x836.png`
+- Normalized side-by-side comparison: `/private/tmp/gomode_road_trip_design_comparison.png`
+- Supporting interaction captures: `/private/tmp/gomode_road_trip_food_filter_471x836.png`, `/private/tmp/gomode_road_trip_map_471x836.png`, `/private/tmp/gomode_road_trip_persisted_stop_471x836.png`, and `/private/tmp/gomode_road_trip_navigate_map_471x836.png`
+- Viewport: 471 × 836 logical pixels, matching the approved 941 × 1672 reference at 2× density
+- State: light theme, Results selected, no quick filters selected, Austin-to-San Antonio demo route
+
+## Full-view comparison evidence
+
+The approved reference and the final Flutter capture were normalized into a single original-resolution comparison. The reference's 54-pixel OS status-bar region was removed and white padding added at the bottom so the app surfaces align without treating browser chrome as design drift. The implementation matches the reference's nested header, title/subtitle hierarchy, centered segmented control, blue route summary, quick-filter strip, three photo-led stop cards, dual actions, sticky route CTA, and five-item navigation.
+
+The final app regions align within a few logical pixels after status-bar normalization: the summary begins at the same height, filter strip and first result sit within roughly five pixels, and the CTA/navigation boundary follows the same vertical rhythm. A separate focused crop was not needed because the 1883 × 1672 side-by-side file retains legible typography, icons, ratings, pills, photo crops, and controls at original detail.
+
+## Required fidelity surfaces
+
+- Fonts and typography: GoMode's configured system/Roboto stack preserves the mock's strong rounded hierarchy, heavy title/card weights, compact metadata, and single-line truncation. The reference display face is marginally rounder, which remains P3 app-wide typography polish.
+- Spacing and layout rhythm: Header controls, segment, summary, filter strip, cards, CTA, and navigation align closely after two responsive fixes. All three result actions are visible at 471 × 836, while the 390 × 844 widget suite confirms there is no Flutter overflow on a narrower screen.
+- Colors and visual tokens: Existing navy, primary-blue, lavender, amber, teal, coral, surface, border, and shadow tokens reproduce the approved palette and semantic states. The route card intentionally uses the existing primary gradient rather than adding an isolated new token.
+- Image quality and asset fidelity: Three project-local high-resolution rasters match the approved subjects and crops: Buc-ee's storefront, Texas hill-country overlook, and brisket tray. All are sharp in the 143 × 114 result slots with no network, placeholder, or code-drawn substitute imagery.
+- Copy and content: Title, Austin-to-San Antonio subtitle, endpoints, 82-mile total, 1h 23m estimate, five filters, three result names, ratings, distances, detours, open states, Save/Navigate controls, and Open Route Map CTA match the requested content.
+- Controls and interaction states: Food filtering removes the Scenic result and visibly selects the chip; Results/Map switches to the demo preview; Save fills the heart, changes the button to Saved, and survives a browser reload; Navigate opens `#/map`; Open Route Map uses the same in-app route behavior.
+- Responsiveness and accessibility: Tests pass at 390 × 844 with selected semantics on the segment and filter controls, native button hit targets, tooltips on favorite hearts, and scroll fallback for smaller/large-text layouts. The final browser reload added no new console errors; accumulated console entries only record the earlier fixed three-pixel card overflow.
+
+## Comparison history
+
+### Pass 1
+
+- Evidence: `/private/tmp/gomode_road_trip_471x836_pass1.png`
+- [P2] The 52-pixel sticky CTA sat too high and obscured the third result's controls because GoMode's existing navigation is taller than the reference navigation.
+- [P2] The result imagery and header-to-list rhythm were less tightly cropped than the approved mock.
+
+Fixes made:
+
+- Reduced the CTA to the reference-like 38-pixel height and aligned it immediately above the existing navigation.
+- Tightened each stop card to 132 pixels, reduced internal action/title heights, removed extra header tail spacing, and adjusted the Buc-ee's crop.
+
+### Pass 2
+
+- Evidence: `/private/tmp/gomode_road_trip_471x836_pass2.png`
+- [P2] The first compact-card pass overflowed its content column by three pixels and exposed Flutter's overflow stripe.
+- [P2] The route summary's bright cyan edge was more pronounced than the approved blue treatment.
+
+Fixes made:
+
+- Removed three pixels from the title/action vertical allocation while preserving every label and touch surface.
+- Switched the summary to GoMode's existing primary blue gradient.
+
+### Final pass
+
+- Evidence: `/private/tmp/gomode_road_trip_471x836.png` and `/private/tmp/gomode_road_trip_design_comparison.png`
+- All result content and actions render without clipping or overflow, the sticky CTA is fully visible, the route summary is closer to the approved palette, and no actionable P0/P1/P2 mismatch remains.
+
+## Findings
+
+No actionable P0, P1, or P2 findings remain.
+
+## Open questions
+
+- The approved image shows Home selected in the bottom navigation. The implementation intentionally shows Modes because Road Trip Stops is a nested custom route in GoMode's established Modes branch, matching the navigation decision already used for Date Night.
+- The reference contains decorative route squiggles, mountains, and star specks in the summary/header. The implementation uses standard route/end-point/progress icons and the existing GoMode header treatment; this is acceptable P3 decorative simplification and does not reduce route comprehension.
+
+## Implementation checklist
+
+- [x] Match the approved results hierarchy, route content, cards, and sticky CTA.
+- [x] Provide realistic local demo data and project-local image assets.
+- [x] Make filters, segmented views, Save/favorite, Navigate, and Open Route Map interactive.
+- [x] Verify save persistence across reload.
+- [x] Verify the 390 × 844 narrow layout and 471 × 836 reference layout.
+- [x] Run browser console and interaction checks.
+
+## Follow-up polish
+
+- [P3] A future app-wide rounded font asset could more exactly match the approved display type.
+- [P3] Google Maps configuration can replace the current polished route placeholder without changing the segmented-control contract.
+
+final result: passed

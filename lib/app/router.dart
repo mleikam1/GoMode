@@ -13,6 +13,7 @@ import '../features/modes/presentation/mode_detail_screen.dart';
 import '../features/modes/presentation/mode_results_screen.dart';
 import '../features/modes/presentation/modes_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/road_trip/presentation/road_trip_stops_screen.dart';
 import '../features/saved/presentation/saved_screen.dart';
 import 'navigation_shell.dart';
 
@@ -81,6 +82,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     ],
                   ),
                   GoRoute(
+                    path: 'road-trip-stops',
+                    name: AppRoute.roadTrip.name,
+                    builder: (context, state) => const RoadTripStopsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'results',
+                        redirect: (context, state) => '/modes/road-trip-stops',
+                      ),
+                    ],
+                  ),
+                  GoRoute(
                     path: ':modeId',
                     name: AppRoute.modeDetail.name,
                     builder: (context, state) {
@@ -139,7 +151,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/road-trip',
-        name: AppRoute.roadTrip.name,
         redirect: (context, state) => '/modes/road-trip-stops',
       ),
       GoRoute(

@@ -60,3 +60,12 @@
 - Added a session-local generated-plan store for the first Save Plan behavior. Durable saved-plan persistence can replace this provider when the Saved feature becomes data-backed.
 - Generated a dedicated high-resolution Date Night hero asset from the approved art direction and kept all titles, controls, and icons as native Flutter UI for accessibility and interaction.
 - Kept Date Night inside the existing Modes shell branch, so the bottom navigation correctly reflects Modes as the active app section even though the visual reference shows a Home-origin state.
+
+## 2026-07-10 Road Trip Stops Results
+
+- Routed `road-trip-stops` directly to a dedicated results experience inside the existing Modes shell branch; legacy `/road-trip` and `/modes/road-trip-stops/results` URLs redirect to the same custom screen.
+- Added a `RoadTripRouteService` boundary backed by local Austin-to-San Antonio demo data. A Routes API plus Places route-search implementation can replace the provider without changing presentation widgets.
+- Persisted saved stop identifiers with SharedPreferences under `road_trip.saved_stop_ids`; Save and favorite heart actions intentionally share the same durable saved state.
+- Kept Navigate and full-map actions inside GoMode's existing map branch until a destination-aware in-app map or external Google Maps URL strategy is selected.
+- Used a polished non-Google map placeholder for the Map segment because API-backed map configuration is not required for this milestone.
+- Generated three project-local, high-resolution raster assets for Buc-ee's New Braunfels, the scenic overlook, and the local BBQ stop to match the approved result-card art direction without a network dependency.
