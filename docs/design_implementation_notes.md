@@ -34,10 +34,11 @@
 
 ### `03_date_night_clean.png`
 
-- Detail header/back/favorite structure: `GradientHeader` with custom `leading` and `trailing`
-- Pink hero artwork: `DateNightIllustration`
-- Budget/vibe/time controls: `FilterChipPill` and `StatusPill` styles
-- Bottom CTA: `PrimaryGradientButton`
+- Dedicated flow: `DateNightSetupScreen` and `DateNightPlanScreen`
+- Detail header/back/favorite structure: native Flutter controls over `AppColors.headerGradient`
+- Pink hero artwork: `assets/images/date_night_hero.png` with native title/subtitle overlays
+- Budget/vibe/time controls: compact single-select native pills; indoor/outdoor/open-now use native switches
+- Tonight's plan preview and bottom CTA: Date Night composition with `PrimaryGradientButton`
 - Large white form surface: shared `AppRadius.largeCard`, `AppShadows.card`, and `AppColors.surfaceRaised`
 
 ### `04_road_trip_results.png`

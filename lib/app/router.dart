@@ -2,6 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/debug/presentation/design_debug_screen.dart';
+import '../features/date_night/data/date_night_planning_service.dart';
+import '../features/date_night/domain/date_night_preferences.dart';
+import '../features/date_night/domain/generated_plan.dart';
+import '../features/date_night/presentation/date_night_plan_screen.dart';
+import '../features/date_night/presentation/date_night_setup_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/map/presentation/map_screen.dart';
 import '../features/modes/presentation/mode_detail_screen.dart';
@@ -21,6 +26,7 @@ enum AppRoute {
   saved,
   profile,
   dateNight,
+  dateNightPlan,
   roadTrip,
   designDebug,
 }
@@ -55,6 +61,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 name: AppRoute.modes.name,
                 builder: (context, state) => const ModesScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'date-night',
+                    name: AppRoute.dateNight.name,
+                    builder: (context, state) => const DateNightSetupScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'plan',
+                        name: AppRoute.dateNightPlan.name,
+                        builder: (context, state) {
+                          final plan = state.extra is GeneratedPlan
+                              ? state.extra! as GeneratedPlan
+                              : generateDemoDateNightPlan(
+                                  const DateNightPreferences.defaults(),
+                                );
+                          return DateNightPlanScreen(plan: plan);
+                        },
+                      ),
+                    ],
+                  ),
                   GoRoute(
                     path: ':modeId',
                     name: AppRoute.modeDetail.name,
@@ -110,7 +135,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/date-night',
-        name: AppRoute.dateNight.name,
         redirect: (context, state) => '/modes/date-night',
       ),
       GoRoute(

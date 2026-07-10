@@ -51,3 +51,12 @@
 - Treated `02_modes_latest_large_category_carousels.png` as the current Modes reference and replaced the dense catalog layout with a featured `PageView` plus wider horizontal category carousels.
 - Kept Popular as the default discovery landing so all 20 catalog modes remain discoverable; Nearby, Family, Road, Health, search, and category See all states narrow the visible mode set.
 - Replaced the prior Open Now catalog slot with the approved Outdoor Ideas mode to match the latest Health & Outdoors section while preserving the 20-mode catalog size.
+
+## 2026-07-10 Clean Date Night Planner
+
+- Routed `date-night` to a dedicated setup and generated-plan flow before the generic `:modeId` route so existing mode cards and deep links open the custom planner without changing catalog URLs.
+- Kept the setup screen intentionally limited to budget, vibe, time, and three toggles; the archived sliders and long preference chip list were not restored.
+- Added `DateNightPlanningService` as the CTA boundary. The default provider uses local demo generation now and can be replaced by a Google-backed implementation without changing the screen.
+- Added a session-local generated-plan store for the first Save Plan behavior. Durable saved-plan persistence can replace this provider when the Saved feature becomes data-backed.
+- Generated a dedicated high-resolution Date Night hero asset from the approved art direction and kept all titles, controls, and icons as native Flutter UI for accessibility and interaction.
+- Kept Date Night inside the existing Modes shell branch, so the bottom navigation correctly reflects Modes as the active app section even though the visual reference shows a Home-origin state.

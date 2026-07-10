@@ -34,17 +34,17 @@ void main() {
     await tester.tap(dateNightCard);
     await tester.pumpAndSettle();
 
-    expect(find.text('Preview results'), findsOneWidget);
-    expect(find.text('Map'), findsOneWidget);
+    expect(find.text('Budget'), findsOneWidget);
+    expect(find.text('Generate My Night'), findsOneWidget);
 
-    await tester.drag(
-      find.byType(CustomScrollView).last,
-      const Offset(0, -180),
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('generate-date-night-button')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Preview results'));
+    await tester.tap(find.byKey(const ValueKey('generate-date-night-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Date Night results'), findsOneWidget);
+    expect(find.text("Tonight's Plan"), findsOneWidget);
+    expect(find.text('Juniper & Rye'), findsOneWidget);
   });
 }

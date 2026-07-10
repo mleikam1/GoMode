@@ -49,7 +49,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Build a polished night out'), findsOneWidget);
+    expect(find.text('Budget'), findsOneWidget);
+    expect(find.text('Generate My Night'), findsOneWidget);
   });
 
   testWidgets('Road Trip filter affects Spin My Mode selection', (
@@ -85,7 +86,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('popular-mode-date-night')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Build a polished night out'), findsOneWidget);
+    expect(find.text('Budget'), findsOneWidget);
+    expect(find.text('Generate My Night'), findsOneWidget);
   });
 
   testWidgets('Home lays out on a small phone viewport', (tester) async {
