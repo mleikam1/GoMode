@@ -41,8 +41,75 @@ class FeaturedModeCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: LayoutBuilder(
               builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 250;
                 final compact = constraints.maxWidth < 360;
-                final imageSize = compact ? 118.0 : 148.0;
+                final imageSize = narrow
+                    ? 128.0
+                    : compact
+                    ? 118.0
+                    : 148.0;
+                final titleStyle =
+                    (narrow
+                            ? Theme.of(context).textTheme.headlineSmall
+                            : Theme.of(context).textTheme.headlineMedium)
+                        ?.copyWith(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w900,
+                          height: 1.02,
+                        );
+                final textContent = Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: titleStyle,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.84),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    PrimaryGradientButton(
+                      label: actionLabel,
+                      icon: actionIcon,
+                      height: narrow ? 48 : 50,
+                      expanded: narrow,
+                      foregroundColor: AppColors.primaryBlue,
+                      gradient: const LinearGradient(
+                        colors: [AppColors.white, AppColors.white],
+                      ),
+                      onPressed: onPressed,
+                    ),
+                  ],
+                );
+
+                if (narrow) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: imageSize,
+                          height: imageSize,
+                          child: illustration,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      textContent,
+                    ],
+                  );
+                }
 
                 return Row(
                   children: [
@@ -52,50 +119,7 @@ class FeaturedModeCard extends StatelessWidget {
                       child: illustration,
                     ),
                     const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.02,
-                                ),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: AppColors.white.withValues(
-                                    alpha: 0.84,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          PrimaryGradientButton(
-                            label: actionLabel,
-                            icon: actionIcon,
-                            height: 50,
-                            expanded: false,
-                            foregroundColor: AppColors.primaryBlue,
-                            gradient: const LinearGradient(
-                              colors: [AppColors.white, AppColors.white],
-                            ),
-                            onPressed: onPressed,
-                          ),
-                        ],
-                      ),
-                    ),
+                    Expanded(child: textContent),
                   ],
                 );
               },

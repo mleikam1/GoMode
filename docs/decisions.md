@@ -39,3 +39,9 @@
 - Expanded the local `DiscoveryMode` model into the app-wide mode catalog instead of adding code generation, keeping the milestone reviewable while preserving typed enums for category and query strategy.
 - Stored icon semantic names separately from Flutter `IconData` so the catalog can map cleanly to server payloads later without leaking widget concerns into API data.
 - Added local demo results to every mode as temporary product data until Google Places, Routes, environmental, and Solar integrations are connected.
+
+## 2026-07-10 Home Screen
+
+- Implemented the approved Home screen with reusable shared widgets and catalog-backed navigation instead of static screenshots or route placeholders.
+- Kept the Home weather signal as an injectable placeholder string until live weather or environmental data exists; the spin demo maps rainy placeholder values to Rainy Day Ideas.
+- Used simple weighted demo rules for Spin My Mode with explicit user intent first: active Road Trip filter, rainy placeholder, evening Date Night, weekend Weekend Plan, then a local random fallback.
