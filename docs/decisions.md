@@ -108,3 +108,14 @@
 - Raised the iOS deployment target from 13.0 to 15.0 because the resolved FlutterFire Swift packages declare iOS 15 as their minimum supported platform. macOS remains at 10.15, which matches the resolved packages.
 - Gated the Functions emulator and custom HTTP transport behind Flutter's debug build mode so production builds fail closed onto App Check-protected callables even if a development define is supplied accidentally.
 - Narrowed Air Quality partial-response selectors to fields normalized by Flutter and reject malformed upstream route metrics rather than presenting fabricated zero-distance live routes.
+
+## 2026-07-10 Live Core Mode Data
+
+- Replaced Date Night's default local generator with three concurrent, bounded Places searches for dinner, an activity, and dessert or drinks. Any missing or fallback category switches the whole plan to the disclosed local fixture instead of mixing live and demo venues.
+- Built Weekend Plan from four role-specific searches—food, activity, coffee/dessert, and a scenic local stop—rather than five unrelated calls. Food Wheel uses category-only Nearby Search unless its open-now filter requires Text Search. Kids Bored Button uses one intent-sensitive text query with only documented `park` or `museum` type filters where they fit.
+- Kept Patio Finder transparent: “patio” remains a text-search lead, not structured truth. Only this mode pays for rating, review-count, and attributed photo search fields, and it ranks those signals plus patio-style name matches before reminding users to verify outdoor seating.
+- Combined Pollen or current Air Quality with one bounded Places suggestion request. Mold is explicitly outside the Pollen API signal. Solar's disabled state now says to connect Solar API and keeps local home/shade inputs as a no-estimate placeholder; it makes no roof, shade, production, savings, or installation claim.
+- Continued the bounded route-polyline midpoint strategy for Road Trip Stops. Results mean “near sampled route points,” never an exact detour, and gas-station results never include or imply live fuel prices.
+- Added a versioned 32-entry local response cache for configured, idempotent backend calls. Search uses a 10-minute TTL, route/AQI 15 minutes, pollen 6 hours, and Solar 24 hours. Matching in-flight calls coalesce; autocomplete, Place Details, and photos bypass the cache.
+- Added 350 ms address autocomplete debouncing and a single Places session token that is closed by the selected Place Details request. Location denial and lookup failures continue to use the visibly marked Austin fallback.
+- Validated every hardcoded request type against the current Places API (New) Table A and added a backend allowlist so clients cannot proxy arbitrary type strings. The allowlist is intentionally narrower than Google's full catalog.

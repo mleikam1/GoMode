@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +9,10 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/discovery_mode.dart';
+import '../../../data/models/backend_models.dart';
+import '../../../data/repositories/places_repository.dart';
 import '../../../data/services/mode_catalog.dart';
+import '../../../services/location_service.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 import '../domain/mode_flow_config.dart';
 import 'mode_visuals.dart';
@@ -27,6 +31,11 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
   final Map<String, String> _selectedFilters = {};
   bool _showInputError = false;
   String? _initializedModeId;
+  Timer? _autocompleteDebounce;
+  String? _autocompleteSessionToken;
+  List<AutocompleteSuggestion> _autocompleteSuggestions = const [];
+  bool _autocompleteLoading = false;
+  int _autocompleteRequestId = 0;
 
   @override
   void didUpdateWidget(covariant ModeDetailScreen oldWidget) {
@@ -36,11 +45,13 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
       _selectedFilters.clear();
       _showInputError = false;
       _initializedModeId = null;
+      _resetAutocomplete();
     }
   }
 
   @override
   void dispose() {
+    _autocompleteDebounce?.cancel();
     _inputController.dispose();
     super.dispose();
   }
@@ -102,10 +113,14 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
                     errorText: _showInputError
                         ? 'Enter a location to continue.'
                         : null,
-                    onChanged: (_) {
+                    loading: _autocompleteLoading,
+                    suggestions: _autocompleteSuggestions,
+                    onSuggestionSelected: _selectAutocompleteSuggestion,
+                    onChanged: (value) {
                       if (_showInputError) {
                         setState(() => _showInputError = false);
                       }
+                      _scheduleAutocomplete(value);
                     },
                   ),
                 ],
@@ -184,6 +199,103 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
     );
     context.go(destination.toString());
   }
+
+  void _scheduleAutocomplete(String value) {
+    _autocompleteDebounce?.cancel();
+    final requestId = ++_autocompleteRequestId;
+    final text = value.trim();
+    if (text.length < 3) {
+      if (_autocompleteSuggestions.isNotEmpty || _autocompleteLoading) {
+        setState(() {
+          _autocompleteSuggestions = const [];
+          _autocompleteLoading = false;
+        });
+      }
+      _autocompleteSessionToken = null;
+      return;
+    }
+
+    _autocompleteSessionToken ??=
+        'gomode-${DateTime.now().microsecondsSinceEpoch}-$requestId';
+    _autocompleteDebounce = Timer(const Duration(milliseconds: 350), () async {
+      if (!mounted || requestId != _autocompleteRequestId) {
+        return;
+      }
+      setState(() => _autocompleteLoading = true);
+      try {
+        final location = await ref
+            .read(locationServiceProvider)
+            .currentOrFallback();
+        final result = await ref
+            .read(placesRepositoryProvider)
+            .autocomplete(
+              text: text,
+              sessionToken: _autocompleteSessionToken!,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              radiusMeters: 16000,
+            );
+        if (!mounted ||
+            requestId != _autocompleteRequestId ||
+            _inputController.text.trim() != text) {
+          return;
+        }
+        setState(() {
+          _autocompleteSuggestions = result.isDemo
+              ? const []
+              : result.suggestions.take(5).toList();
+          _autocompleteLoading = false;
+        });
+      } catch (_) {
+        if (mounted && requestId == _autocompleteRequestId) {
+          setState(() {
+            _autocompleteSuggestions = const [];
+            _autocompleteLoading = false;
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _selectAutocompleteSuggestion(
+    AutocompleteSuggestion suggestion,
+  ) async {
+    _autocompleteDebounce?.cancel();
+    final token = _autocompleteSessionToken;
+    final requestId = ++_autocompleteRequestId;
+    setState(() {
+      _inputController.text = suggestion.fullText;
+      _autocompleteSuggestions = const [];
+      _autocompleteLoading = true;
+    });
+    try {
+      if (token != null) {
+        final details = await ref
+            .read(placesRepositoryProvider)
+            .placeDetails(suggestion.placeId, sessionToken: token);
+        if (mounted && requestId == _autocompleteRequestId) {
+          _inputController.text = details.place.address.isEmpty
+              ? suggestion.fullText
+              : details.place.address;
+        }
+      }
+    } catch (_) {
+      // The selected prediction text is still a useful address input.
+    } finally {
+      if (mounted && requestId == _autocompleteRequestId) {
+        setState(() => _autocompleteLoading = false);
+      }
+      _autocompleteSessionToken = null;
+    }
+  }
+
+  void _resetAutocomplete() {
+    _autocompleteDebounce?.cancel();
+    _autocompleteRequestId++;
+    _autocompleteSessionToken = null;
+    _autocompleteSuggestions = const [];
+    _autocompleteLoading = false;
+  }
 }
 
 void _goBackToModes(BuildContext context) {
@@ -237,14 +349,6 @@ class _ModeHeroCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
-                        if (kDebugMode) ...[
-                          const SizedBox(height: AppSpacing.xs),
-                          StatusPill(
-                            label: 'Demo fallback',
-                            color: mode.accentColor,
-                            compact: true,
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -263,6 +367,9 @@ class _ModeTextInput extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.onChanged,
+    required this.loading,
+    required this.suggestions,
+    required this.onSuggestionSelected,
     this.hint,
     this.helper,
     this.errorText,
@@ -274,31 +381,79 @@ class _ModeTextInput extends StatelessWidget {
   final String? helper;
   final String? errorText;
   final ValueChanged<String> onChanged;
+  final bool loading;
+  final List<AutocompleteSuggestion> suggestions;
+  final ValueChanged<AutocompleteSuggestion> onSuggestionSelected;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      key: const ValueKey('mode-location-input'),
-      controller: controller,
-      onChanged: onChanged,
-      textInputAction: TextInputAction.done,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        helperText: helper,
-        errorText: errorText,
-        prefixIcon: const Icon(Icons.location_on_outlined),
-        filled: true,
-        fillColor: AppColors.surfaceRaised,
-        border: OutlineInputBorder(
-          borderRadius: AppRadius.card,
-          borderSide: const BorderSide(color: AppColors.border),
+    return Column(
+      children: [
+        TextField(
+          key: const ValueKey('mode-location-input'),
+          controller: controller,
+          onChanged: onChanged,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            helperText: helper,
+            errorText: errorText,
+            prefixIcon: const Icon(Icons.location_on_outlined),
+            suffixIcon: loading
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : null,
+            filled: true,
+            fillColor: AppColors.surfaceRaised,
+            border: OutlineInputBorder(
+              borderRadius: AppRadius.card,
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: AppRadius.card,
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: AppRadius.card,
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-      ),
+        if (suggestions.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Material(
+            key: const ValueKey('mode-location-suggestions'),
+            color: AppColors.surfaceRaised,
+            borderRadius: AppRadius.card,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: AppRadius.card,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  for (var index = 0; index < suggestions.length; index++)
+                    ListTile(
+                      key: ValueKey('mode-location-suggestion-$index'),
+                      dense: true,
+                      leading: const Icon(Icons.place_outlined),
+                      title: Text(
+                        suggestions[index].primaryText ??
+                            suggestions[index].fullText,
+                      ),
+                      subtitle: suggestions[index].secondaryText == null
+                          ? null
+                          : Text(suggestions[index].secondaryText!),
+                      onTap: () => onSuggestionSelected(suggestions[index]),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -4,6 +4,7 @@ import {
   AIR_QUALITY_CURRENT_FIELDS,
   AIR_QUALITY_FORECAST_FIELDS,
   GoogleApiClient,
+  PATIO_PLACE_SEARCH_FIELDS,
   PLACE_DETAILS_FIELDS,
   PLACE_SEARCH_FIELDS,
   POLLEN_FIELDS,
@@ -55,7 +56,7 @@ test("searchPlaces uses Text Search pageSize for openNow and never puts key in U
     maxResults: 7,
   });
 
-  assert.deepEqual(result, {places: [{id: "place-1"}]});
+  assert.deepEqual(result, {places: [{id: "place-1", openNow: true}]});
   assert.equal(calls.length, 1);
   assert.equal(calls[0]!.url.pathname, "/v1/places:searchText");
   assert.equal(calls[0]!.url.searchParams.has("key"), false);
@@ -68,6 +69,36 @@ test("searchPlaces uses Text Search pageSize for openNow and never puts key in U
   assert.equal(body.openNow, true);
   assert.equal(body.includedType, "restaurant");
   assert.equal("maxResultCount" in body, false);
+  assert.equal(
+    (result.places[0] as Record<string, unknown>).openNow,
+    true,
+  );
+});
+
+test("Patio Finder alone requests ranking signals from search", async () => {
+  let mask = "";
+  const client = testClient(async (_input, init) => {
+    mask = (init!.headers as Record<string, string>)["X-Goog-FieldMask"]!;
+    return jsonResponse({places: []});
+  });
+
+  await client.searchPlaces({
+    latitude: 30,
+    longitude: -97,
+    modeId: "patio-finder",
+    query: "restaurant patio",
+    category: "restaurant",
+    radius: 5_000,
+    openNow: false,
+    maxResults: 8,
+  });
+
+  assert.equal(mask, PATIO_PLACE_SEARCH_FIELDS);
+  assert.match(mask, /places\.rating/);
+  assert.match(mask, /places\.userRatingCount/);
+  assert.match(mask, /places\.photos\.name/);
+  assert.equal(PLACE_SEARCH_FIELDS.includes("rating"), false);
+  assert.equal(PLACE_SEARCH_FIELDS.includes("photos"), false);
 });
 
 test("searchPlaces uses Nearby Search only when no query or openNow filter is present", async () => {

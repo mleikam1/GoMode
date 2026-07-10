@@ -25,6 +25,12 @@ export const PLACE_SEARCH_FIELDS = [
   "places.location",
   "places.primaryType",
   "places.types",
+].join(",");
+
+export const PATIO_PLACE_SEARCH_FIELDS = [
+  PLACE_SEARCH_FIELDS,
+  "places.rating",
+  "places.userRatingCount",
   "places.photos.name",
   "places.photos.authorAttributions.displayName",
   "places.photos.authorAttributions.uri",
@@ -130,7 +136,10 @@ export class GoogleApiClient {
     const response = useTextSearch
       ? await this.textSearch(input)
       : await this.nearbySearch(input);
-    return {places: arrayProperty(response, "places")};
+    const places = arrayProperty(response, "places").map((place) =>
+      input.openNow && isObject(place) ? {...place, openNow: true} : place,
+    );
+    return {places};
   }
 
   async placeDetails(input: PlaceDetailsInput): Promise<Record<string, unknown>> {
@@ -369,7 +378,7 @@ export class GoogleApiClient {
       input.query ?? input.category?.replaceAll("_", " ") ?? modeSearchTerm(input.modeId);
     return this.requestJson("placesTextSearch", `${PLACES_BASE}/places:searchText`, {
       method: "POST",
-      fieldMask: PLACE_SEARCH_FIELDS,
+      fieldMask: placeSearchFields(input),
       body: {
         textQuery,
         pageSize: input.maxResults,
@@ -396,7 +405,7 @@ export class GoogleApiClient {
       `${PLACES_BASE}/places:searchNearby`,
       {
         method: "POST",
-        fieldMask: PLACE_SEARCH_FIELDS,
+        fieldMask: placeSearchFields(input),
         body: {
           ...(category === undefined ? {} : {includedTypes: [category]}),
           maxResultCount: input.maxResults,
@@ -498,6 +507,12 @@ export class GoogleApiClient {
     }
     throw new BackendError("internal", "The map request could not be completed.");
   }
+}
+
+function placeSearchFields(input: SearchPlacesInput): string {
+  return input.modeId === "patio-finder"
+    ? PATIO_PLACE_SEARCH_FIELDS
+    : PLACE_SEARCH_FIELDS;
 }
 
 function routeWaypoint(value: WaypointInput): Record<string, unknown> {

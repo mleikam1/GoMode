@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gomode/app/gomode_app.dart';
 import 'package:gomode/app/router.dart';
+import 'package:gomode/features/modes/data/generic_mode_results_service.dart';
 import 'package:gomode/features/saved/application/saved_library_controller.dart';
 import 'package:gomode/features/saved/data/saved_local_storage.dart';
 import 'package:gomode/features/saved/data/saved_repository.dart';
@@ -126,7 +127,12 @@ Future<_SavedTestHarness> _pumpApp(WidgetTester tester) async {
     now: () => DateTime(2026, 7, 10, 12),
   );
   final container = ProviderContainer(
-    overrides: [savedRepositoryProvider.overrideWithValue(repository)],
+    overrides: [
+      savedRepositoryProvider.overrideWithValue(repository),
+      genericModeResultsServiceProvider.overrideWithValue(
+        const DemoGenericModeResultsService(delay: Duration.zero),
+      ),
+    ],
   );
   addTearDown(container.dispose);
   await tester.pumpWidget(

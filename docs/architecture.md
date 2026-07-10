@@ -39,6 +39,8 @@ Flutter selects its data source at runtime:
 
 Invalid requests and failed verification are not silently presented as live results. UI state can distinguish live, unavailable, and demo sources.
 
+Configured clients place a small versioned SharedPreferences cache in front of idempotent callable requests. Keys use canonicalized request inputs, duplicate in-flight requests share one Future, and the cache retains at most 32 recent entries. Mode result providers therefore do not issue new calls during scrolling or short back/forward navigation. Autocomplete, Place Details, and photo operations bypass this cache; address inputs debounce for 350 ms and use one session token through the selected Place Details request.
+
 ## Firebase Project Isolation
 
 The backend targets the existing `wingman-interactive-live` project, but GoMode app registration and deployment are deferred. Existing Firebase apps and Gen2 Functions in that project are unrelated. `firebase.json` assigns the backend the `gomode` codebase, and any future deployment must use `--only functions:gomode` so unrelated Functions are not considered for deletion or replacement.

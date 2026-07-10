@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -280,7 +279,7 @@ class _PlanSummary extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (kDebugMode && plan.isDemo) ...[
+                if (plan.isDemo) ...[
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -292,7 +291,7 @@ class _PlanSummary extends StatelessWidget {
                       borderRadius: AppRadius.chip,
                     ),
                     child: Text(
-                      'Local demo plan',
+                      'Demo fallback',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: AppColors.coral,
                         fontWeight: FontWeight.w900,

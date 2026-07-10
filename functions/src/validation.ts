@@ -21,6 +21,33 @@ const MODE_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9._~-]{1,128}$/;
 const PHOTO_NAME_PATTERN = /^places\/[^/?#]+\/photos\/[^/?#]+$/;
 
+// Every value is from Places API (New) Table A, verified 2026-07-10.
+// Keep this allowlist intentionally narrower than Google's full catalog so a
+// compromised client cannot turn the callable into an arbitrary type proxy.
+const SUPPORTED_PLACE_TYPES = new Set([
+  "amusement_center",
+  "bar",
+  "bowling_alley",
+  "cafe",
+  "car_repair",
+  "coffee_shop",
+  "dessert_shop",
+  "dog_park",
+  "electric_vehicle_charging_station",
+  "gas_station",
+  "indoor_playground",
+  "library",
+  "museum",
+  "park",
+  "pharmacy",
+  "public_bathroom",
+  "restaurant",
+  "rest_stop",
+  "scenic_spot",
+  "tourist_attraction",
+  "video_arcade",
+]);
+
 export function validateSearchPlaces(data: unknown): SearchPlacesInput {
   const value = objectValue(data);
   assertAllowedKeys(value, [
@@ -40,6 +67,9 @@ export function validateSearchPlaces(data: unknown): SearchPlacesInput {
     CATEGORY_PATTERN,
     "a supported Places type such as restaurant or gas_station",
   );
+  if (category !== undefined && !SUPPORTED_PLACE_TYPES.has(category)) {
+    throw invalidArgument("category is not enabled for this app.", "category");
+  }
   return {
     ...coordinateFrom(value),
     modeId: patternString(
@@ -106,7 +136,11 @@ export function validateRoadTripStops(data: unknown): RoadTripStopsInput {
     throw invalidArgument("categories accepts at most 3 values.", "categories");
   }
   const categories = rawCategories.map((entry, index) => {
-    if (typeof entry !== "string" || !CATEGORY_PATTERN.test(entry)) {
+    if (
+      typeof entry !== "string" ||
+      !CATEGORY_PATTERN.test(entry) ||
+      !SUPPORTED_PLACE_TYPES.has(entry)
+    ) {
       throw invalidArgument(
         `categories[${index}] must be a supported lowercase Places type.`,
         "categories",

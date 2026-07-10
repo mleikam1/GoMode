@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'backend_response_cache.dart';
 
 const backendBaseUrl = String.fromEnvironment('GOMODE_BACKEND_BASE_URL');
 const firebaseFunctionsRegion = String.fromEnvironment(
@@ -34,6 +38,7 @@ final dioProvider = Provider<Dio>((ref) {
 });
 
 final backendApiClientProvider = Provider<BackendApiClient>((ref) {
+  final BackendApiClient client;
   if (firebaseBackendReady && Firebase.apps.isNotEmpty) {
     final functions = FirebaseFunctions.instanceFor(
       region: firebaseFunctionsRegion,
@@ -44,17 +49,16 @@ final backendApiClientProvider = Provider<BackendApiClient>((ref) {
         functionsEmulatorPort,
       );
     }
-    return FirebaseCallableApiClient(functions);
-  }
-
-  if (kDebugMode && backendBaseUrl.isNotEmpty) {
-    return HttpBackendApiClient(
+    client = FirebaseCallableApiClient(functions);
+  } else if (kDebugMode && backendBaseUrl.isNotEmpty) {
+    client = HttpBackendApiClient(
       dio: ref.watch(dioProvider),
       baseUrl: backendBaseUrl,
     );
+  } else {
+    client = const UnconfiguredBackendApiClient();
   }
-
-  return const UnconfiguredBackendApiClient();
+  return client.isConfigured ? CachedBackendApiClient(client) : client;
 });
 
 abstract interface class BackendApiClient {
@@ -65,6 +69,127 @@ abstract interface class BackendApiClient {
     Map<String, dynamic> input, {
     bool retryTransient = true,
   });
+}
+
+/// Caches only idempotent discovery calls. Autocomplete, Place Details, and
+/// photo calls stay uncached so autocomplete sessions and signed URLs retain
+/// their expected lifecycle.
+class CachedBackendApiClient implements BackendApiClient {
+  CachedBackendApiClient(this._delegate, {DateTime Function()? now})
+    : _cache = const SharedPreferencesBackendResponseCache(),
+      _now = now ?? DateTime.now;
+
+  CachedBackendApiClient.withCache(
+    this._delegate,
+    this._cache, {
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
+
+  final BackendApiClient _delegate;
+  final BackendResponseCache _cache;
+  final DateTime Function() _now;
+  final Map<String, Future<Map<String, dynamic>>> _inFlight = {};
+
+  @override
+  bool get isConfigured => _delegate.isConfigured;
+
+  @override
+  Future<Map<String, dynamic>> call(
+    String functionName,
+    Map<String, dynamic> input, {
+    bool retryTransient = true,
+  }) async {
+    final ttl = _cacheTtlFor(functionName);
+    if (ttl == null) {
+      return _delegate.call(
+        functionName,
+        input,
+        retryTransient: retryTransient,
+      );
+    }
+
+    final signature = jsonEncode(_canonicalizeCacheInput(input));
+    final key = 'gomode.backend.v1.$functionName.${_fnv1a64(signature)}';
+    CachedBackendResponse? cached;
+    try {
+      cached = await _cache.read(key);
+    } catch (_) {
+      // A local cache failure must never block a live result.
+    }
+    final now = _now().toUtc();
+    if (cached != null &&
+        cached.signature == signature &&
+        cached.expiresAt.isAfter(now)) {
+      return Map<String, dynamic>.from(cached.payload);
+    }
+
+    final existing = _inFlight[key];
+    if (existing != null) {
+      return existing;
+    }
+    final future = () async {
+      final response = await _delegate.call(
+        functionName,
+        input,
+        retryTransient: retryTransient,
+      );
+      try {
+        await _cache.write(
+          key,
+          CachedBackendResponse(
+            signature: signature,
+            expiresAt: now.add(ttl),
+            payload: response,
+          ),
+        );
+      } catch (_) {
+        // Return the live response even when local persistence is unavailable.
+      }
+      return response;
+    }();
+    _inFlight[key] = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_inFlight[key], future)) {
+        _inFlight.remove(key);
+      }
+    }
+  }
+}
+
+Duration? _cacheTtlFor(String functionName) {
+  return switch (functionName) {
+    'searchPlaces' => const Duration(minutes: 10),
+    'computeRoute' || 'roadTripStops' => const Duration(minutes: 15),
+    'airQuality' => const Duration(minutes: 15),
+    'pollen' => const Duration(hours: 6),
+    'solarCheck' => const Duration(hours: 24),
+    _ => null,
+  };
+}
+
+Object? _canonicalizeCacheInput(Object? value) {
+  if (value is Map) {
+    final keys = value.keys.map((key) => '$key').toList()..sort();
+    return <String, Object?>{
+      for (final key in keys) key: _canonicalizeCacheInput(value[key]),
+    };
+  }
+  if (value is Iterable) {
+    return [for (final item in value) _canonicalizeCacheInput(item)];
+  }
+  return value;
+}
+
+String _fnv1a64(String value) {
+  var hash = BigInt.parse('14695981039346656037');
+  final prime = BigInt.from(1099511628211);
+  final mask = (BigInt.one << 64) - BigInt.one;
+  for (final byte in utf8.encode(value)) {
+    hash = ((hash ^ BigInt.from(byte)) * prime) & mask;
+  }
+  return hash.toRadixString(16).padLeft(16, '0');
 }
 
 enum BackendFailureKind {

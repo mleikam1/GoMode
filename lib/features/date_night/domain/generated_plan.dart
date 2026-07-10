@@ -30,6 +30,7 @@ class GeneratedPlan {
     required this.startTime,
     required this.steps,
     required this.isDemo,
+    this.fallbackMessage,
   });
 
   final String id;
@@ -38,4 +39,5 @@ class GeneratedPlan {
   final DateTime startTime;
   final List<PlanStep> steps;
   final bool isDemo;
+  final String? fallbackMessage;
 }

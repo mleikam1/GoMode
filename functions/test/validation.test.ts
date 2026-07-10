@@ -40,6 +40,25 @@ test("road trip validation caps categories at three", () => {
   );
 });
 
+test("place categories are limited to documented app types", () => {
+  assert.throws(() =>
+    validateSearchPlaces({
+      latitude: 30,
+      longitude: -97,
+      modeId: "food-wheel",
+      radius: 1_000,
+      category: "made_up_place_type",
+    }),
+  );
+  assert.throws(() =>
+    validateRoadTripStops({
+      origin: "Austin, TX",
+      destination: "Dallas, TX",
+      categories: ["restaurant", "made_up_place_type"],
+    }),
+  );
+});
+
 test("autocomplete requires a safe session token and coordinate pair", () => {
   assert.throws(() =>
     validateAutocomplete({

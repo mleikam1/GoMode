@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gomode/app/gomode_app.dart';
+import 'package:gomode/services/location_service.dart';
 
 void main() {
   testWidgets('GoMode navigation shell smoke test', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: GoModeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          locationServiceProvider.overrideWithValue(
+            const _TestLocationService(),
+          ),
+        ],
+        child: const GoModeApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('GoMode'), findsOneWidget);
@@ -47,4 +57,11 @@ void main() {
     expect(find.text("Tonight's Plan"), findsOneWidget);
     expect(find.text('Juniper & Rye'), findsOneWidget);
   });
+}
+
+class _TestLocationService implements LocationService {
+  const _TestLocationService();
+
+  @override
+  Future<AppLocation> currentOrFallback() async => austinFallbackLocation;
 }

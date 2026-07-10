@@ -200,11 +200,17 @@ class BackendGenericModeResultsService
     DiscoveryMode mode,
     Map<String, String> filters,
   ) async {
+    if (mode.id == 'weekend-plan') {
+      return _loadWeekendPlan(mode, filters);
+    }
+    if (mode.id == 'kids-bored-button') {
+      return _loadPlaces(mode, filters);
+    }
     return switch (mode.queryStrategyType) {
       ModeQueryStrategyType.nearbyPlaces ||
       ModeQueryStrategyType.textSearch ||
       ModeQueryStrategyType.routeSearch => _loadPlaces(mode, filters),
-      ModeQueryStrategyType.environmental => _loadEnvironment(mode),
+      ModeQueryStrategyType.environmental => _loadEnvironment(mode, filters),
       ModeQueryStrategyType.solar => _loadSolar(mode, filters),
       _ => _demo.load(mode),
     };
@@ -225,10 +231,19 @@ class BackendGenericModeResultsService
       openNow:
           mode.id == 'open-now' ||
           filters.values.any((value) => value.toLowerCase() == 'open now'),
-      maxResults: mode.id == 'food-wheel' ? 8 : 10,
+      maxResults: switch (mode.id) {
+        'food-wheel' || 'kids-bored-button' => 8,
+        _ => 10,
+      },
     );
+    final places = [...result.places];
+    if (mode.id == 'patio-finder') {
+      places.sort(
+        (left, right) => _patioScore(right).compareTo(_patioScore(left)),
+      );
+    }
     return [
-      for (final place in result.places)
+      for (final place in places)
         _placeItem(
           mode: mode,
           place: place,
@@ -239,52 +254,218 @@ class BackendGenericModeResultsService
     ];
   }
 
-  Future<List<ModeResultItem>> _loadEnvironment(DiscoveryMode mode) async {
+  Future<List<ModeResultItem>> _loadWeekendPlan(
+    DiscoveryMode mode,
+    Map<String, String> filters,
+  ) async {
     final location = await _location.currentOrFallback();
-    if (mode.id == 'allergy-map') {
-      final report = await _environment.pollen(
-        latitude: location.latitude,
-        longitude: location.longitude,
-      );
-      if (report.isDemo || report.days.isEmpty) {
-        return _markDemo(
-          await _demo.load(mode),
-          report.fallbackMessage ??
-              'Live pollen data is unavailable. Showing lower-exposure ideas.',
-        );
-      }
-      final today = report.days.first;
-      final level = today.category ?? 'Current pollen';
-      return [
-        ModeResultItem(
-          id: '${mode.id}-live-pollen',
-          title: '$level pollen outlook',
-          subtitle: today.inSeasonTypes.isEmpty
-              ? 'Current conditions near ${location.label}'
-              : '${today.inSeasonTypes.join(', ')} in season',
-          detail:
-              'Use this forecast as a planning signal and follow personal medical guidance.',
-          distanceLabel: 'Current area',
-          imageSemanticName: 'allergy',
-          tags: [
-            if (today.indexValue != null) 'Index ${today.indexValue}',
-            'Live forecast',
-            if (location.isFallback) 'Austin fallback',
-          ],
+    final setting = filters['setting'] ?? 'Either';
+    final activityQuery = switch (setting) {
+      'Indoor' => 'local museum or indoor activity',
+      'Outdoor' => 'local park or outdoor attraction',
+      _ => 'local park attraction or activity',
+    };
+    final activityCategory = switch (setting) {
+      'Indoor' => 'museum',
+      'Outdoor' => 'park',
+      _ => 'tourist_attraction',
+    };
+    final requests = <({String role, String query, String? category})>[
+      (
+        role: 'Food',
+        query: 'local brunch or lunch restaurant',
+        category: 'restaurant',
+      ),
+      (role: 'Activity', query: activityQuery, category: activityCategory),
+      (
+        role: 'Coffee or dessert',
+        query: 'local coffee or dessert shop',
+        category: null,
+      ),
+      (
+        role: 'Scenic local stop',
+        query: 'scenic local spot',
+        category: 'scenic_spot',
+      ),
+    ];
+    final results = await Future.wait([
+      for (final request in requests)
+        _places.searchPlaces(
+          latitude: location.latitude,
+          longitude: location.longitude,
+          modeId: 'weekend-plan',
+          query: request.query,
+          category: request.category,
+          radiusMeters: _radiusMeters(filters['distance']),
+          maxResults: 3,
         ),
-      ];
-    }
-
-    final report = await _environment.airQuality(
-      latitude: location.latitude,
-      longitude: location.longitude,
-    );
-    if (report.isDemo || report.aqi == null) {
+    ]);
+    if (results.any((result) => result.isDemo || result.places.isEmpty)) {
+      final message = results
+          .map((result) => result.fallbackMessage)
+          .whereType<String>()
+          .firstOrNull;
       return _markDemo(
         await _demo.load(mode),
-        report.fallbackMessage ??
-            'Live air-quality data is unavailable. Verify conditions before leaving.',
+        message ??
+            'Showing a local demo itinerary while live places are unavailable.',
       );
+    }
+
+    final usedIds = <String>{};
+    final selected = <PlaceSummary>[];
+    for (final result in results) {
+      final place = result.places.firstWhere(
+        (candidate) => candidate.id.isEmpty || !usedIds.contains(candidate.id),
+        orElse: () => result.places.first,
+      );
+      selected.add(place);
+      if (place.id.isNotEmpty) {
+        usedIds.add(place.id);
+      }
+    }
+    const times = ['10:00 AM', '12:00 PM', '2:00 PM', '4:00 PM'];
+    return [
+      for (var index = 0; index < selected.length; index++)
+        _weekendItem(
+          mode: mode,
+          place: selected[index],
+          role: requests[index].role,
+          time: times[index],
+          index: index,
+          total: selected.length,
+          locationFallback: location.isFallback,
+        ),
+    ];
+  }
+
+  Future<List<ModeResultItem>> _loadEnvironment(
+    DiscoveryMode mode,
+    Map<String, String> filters,
+  ) async {
+    final location = await _location.currentOrFallback();
+    final setting = filters['setting'] ?? 'Either';
+    final suggestionQuery = switch (setting) {
+      'Indoor' => 'indoor museum library activities',
+      'Outdoor' => 'park scenic outdoor activities',
+      _ => 'indoor or outdoor local activities',
+    };
+    final suggestionCategory = switch (setting) {
+      'Indoor' => 'museum',
+      'Outdoor' => 'park',
+      _ => null,
+    };
+    final placesFuture = _places.searchPlaces(
+      latitude: location.latitude,
+      longitude: location.longitude,
+      modeId: mode.id,
+      query: suggestionQuery,
+      category: suggestionCategory,
+      radiusMeters: _radiusMeters(filters['distance']),
+      maxResults: 5,
+    );
+    if (mode.id == 'allergy-map') {
+      final values = await Future.wait<Object>([
+        _environment.pollen(
+          latitude: location.latitude,
+          longitude: location.longitude,
+        ),
+        placesFuture,
+      ]);
+      final report = values[0] as PollenReport;
+      final suggestions = values[1] as PlaceSearchResult;
+      final items = <ModeResultItem>[];
+      if (report.isDemo || report.days.isEmpty) {
+        items.add(
+          ModeResultItem(
+            id: '${mode.id}-pollen-unavailable',
+            title: 'Live pollen data unavailable',
+            subtitle: 'Suggestions can still help you plan',
+            detail:
+                'No current pollen level is shown. Follow personal medical guidance.',
+            distanceLabel: 'Unavailable',
+            imageSemanticName: 'allergy',
+            tags: const ['No live pollen claim'],
+            isDemo: true,
+            fallbackMessage:
+                report.fallbackMessage ??
+                'Live pollen data is unavailable. Showing nearby planning ideas.',
+          ),
+        );
+      } else {
+        final today = report.days.first;
+        final level = today.category ?? 'Current pollen';
+        final concern = filters['allergen'] ?? 'Pollen';
+        items.add(
+          ModeResultItem(
+            id: '${mode.id}-live-pollen',
+            title: concern == 'Mold'
+                ? 'Pollen context · mold not covered'
+                : '$level pollen outlook',
+            subtitle: today.inSeasonTypes.isEmpty
+                ? 'Current conditions near ${location.label}'
+                : '${today.inSeasonTypes.join(', ')} in season',
+            detail: concern == 'Mold'
+                ? 'Google Pollen data does not measure mold. Use this pollen context only and follow personal medical guidance.'
+                : 'Use this forecast as a planning signal and follow personal medical guidance.',
+            distanceLabel: 'Current area',
+            imageSemanticName: 'allergy',
+            tags: [
+              if (today.indexValue != null) 'Index ${today.indexValue}',
+              'Live forecast',
+              if (concern == 'Mold') 'Mold not measured',
+              if (location.isFallback) 'Austin fallback',
+            ],
+          ),
+        );
+      }
+      items.addAll(
+        suggestions.places.map(
+          (place) => _placeItem(
+            mode: mode,
+            place: place,
+            isDemo: suggestions.isDemo,
+            fallbackMessage: suggestions.fallbackMessage,
+            locationFallback: location.isFallback,
+          ),
+        ),
+      );
+      return items;
+    }
+
+    final values = await Future.wait<Object>([
+      _environment.airQuality(
+        latitude: location.latitude,
+        longitude: location.longitude,
+      ),
+      placesFuture,
+    ]);
+    final report = values[0] as AirQualityReport;
+    final suggestions = values[1] as PlaceSearchResult;
+    if (report.isDemo || report.aqi == null) {
+      return [
+        ModeResultItem(
+          id: '${mode.id}-aqi-unavailable',
+          title: 'Live air quality unavailable',
+          subtitle: 'Nearby planning ideas',
+          detail: 'Verify current AQI before choosing an outdoor activity.',
+          distanceLabel: 'Unavailable',
+          imageSemanticName: 'air',
+          tags: const ['No live AQI claim'],
+          isDemo: true,
+          fallbackMessage:
+              report.fallbackMessage ??
+              'Live air-quality data is unavailable. Verify conditions before leaving.',
+        ),
+        for (final place in suggestions.places)
+          _placeItem(
+            mode: mode,
+            place: place,
+            isDemo: suggestions.isDemo,
+            fallbackMessage: suggestions.fallbackMessage,
+            locationFallback: location.isFallback,
+          ),
+      ];
     }
     return [
       ModeResultItem(
@@ -302,6 +483,14 @@ class BackendGenericModeResultsService
           if (location.isFallback) 'Austin fallback',
         ],
       ),
+      for (final place in suggestions.places)
+        _placeItem(
+          mode: mode,
+          place: place,
+          isDemo: suggestions.isDemo,
+          fallbackMessage: suggestions.fallbackMessage,
+          locationFallback: location.isFallback,
+        ),
     ];
   }
 
@@ -318,20 +507,35 @@ class BackendGenericModeResultsService
     }
     final result = await _solar.solarCheck(address);
     if (!result.available) {
+      final notConfigured = result.status == 'not_configured';
       return [
         ModeResultItem(
           id: '${mode.id}-unavailable',
-          title: 'Solar data unavailable',
+          title: notConfigured ? 'Connect Solar API' : 'Solar data unavailable',
           subtitle: address,
           detail:
               result.reason ??
               'No roof suitability or savings estimate was performed.',
-          distanceLabel: 'Unavailable',
+          distanceLabel: notConfigured ? 'Setup needed' : 'Unavailable',
           imageSemanticName: 'solar',
           tags: const ['No estimate', 'Try another address'],
           isDemo: result.isDemo,
           fallbackMessage: result.reason,
         ),
+        if (notConfigured)
+          ModeResultItem(
+            id: '${mode.id}-local-placeholder',
+            title: 'Local estimation placeholder',
+            subtitle:
+                '${filters['homeType'] ?? 'Home type unknown'} · ${filters['shade'] ?? 'Shade unknown'}',
+            detail:
+                'Your inputs are ready, but no roof, shade, production, savings, or installation estimate was calculated.',
+            distanceLabel: 'No estimate',
+            imageSemanticName: 'solar',
+            tags: const ['Local inputs only', 'No solar claim'],
+            isDemo: true,
+            fallbackMessage: result.reason,
+          ),
       ];
     }
     return [
@@ -382,13 +586,16 @@ class BackendGenericModeResultsService
       false => 'Closed now',
       null => 'Hours unverified',
     };
+    final patioLead = mode.id == 'patio-finder';
     return ModeResultItem(
       id: place.id.isEmpty ? '${mode.id}-${place.name.hashCode}' : place.id,
       title: place.name,
       subtitle: place.address.isEmpty
           ? _readableType(place.primaryType) ?? 'Nearby place'
           : place.address,
-      detail: place.rating == null
+      detail: patioLead
+          ? _patioDetail(place)
+          : place.rating == null
           ? 'Open place details to confirm current hours and availability.'
           : 'Rated ${place.rating!.toStringAsFixed(1)} from ${place.userRatingCount ?? 0} reviews.',
       distanceLabel: place.distanceMeters == null
@@ -398,6 +605,9 @@ class BackendGenericModeResultsService
       tags: [
         ?_readableType(place.primaryType),
         openStatus,
+        if (patioLead && _hasPatioTextMatch(place.name)) 'Patio text match',
+        if (patioLead && place.photoName != null) 'Photo signal',
+        if (patioLead && place.userRatingCount != null) 'Review signal',
         if (locationFallback) 'Austin fallback',
       ],
       rating: place.rating,
@@ -406,22 +616,69 @@ class BackendGenericModeResultsService
       fallbackMessage: fallbackMessage,
     );
   }
+
+  ModeResultItem _weekendItem({
+    required DiscoveryMode mode,
+    required PlaceSummary place,
+    required String role,
+    required String time,
+    required int index,
+    required int total,
+    required bool locationFallback,
+  }) {
+    final base = _placeItem(
+      mode: mode,
+      place: place,
+      isDemo: false,
+      fallbackMessage: null,
+      locationFallback: locationFallback,
+    );
+    return ModeResultItem(
+      id: base.id,
+      title: '$time · ${base.title}',
+      subtitle: base.subtitle,
+      detail: '$role stop. ${base.detail}',
+      distanceLabel: 'Stop ${index + 1} of $total',
+      imageSemanticName: role == 'Food' || role == 'Coffee or dessert'
+          ? 'food'
+          : 'weekend',
+      tags: [role, ...base.tags],
+      rating: base.rating,
+      openStatus: base.openStatus,
+    );
+  }
 }
 
-String _queryFor(DiscoveryMode mode, Map<String, String> filters) {
+String _patioDetail(PlaceSummary place) {
+  final signals = <String>[
+    'Google text relevance',
+    if (place.photoName != null) 'photo availability',
+    if (place.rating != null) '${place.rating!.toStringAsFixed(1)} rating',
+    if (place.userRatingCount != null)
+      '${place.userRatingCount} review${place.userRatingCount == 1 ? '' : 's'}',
+  ];
+  return 'Patio lead ranked from ${signals.join(', ')}. Verify outdoor seating before leaving.';
+}
+
+String? _queryFor(DiscoveryMode mode, Map<String, String> filters) {
   return switch (mode.id) {
-    'food-wheel' => 'restaurant',
-    'patio-finder' => 'restaurant patio',
+    'food-wheel' => null,
+    'patio-finder' =>
+      filters['pet'] == 'Pet-friendly'
+          ? 'pet friendly restaurant patio'
+          : 'restaurant patio',
     'cheap-date' => 'affordable date activities',
-    'kids-bored-button' => 'family activities',
+    'kids-bored-button' => _kidsQuery(filters),
     'rainy-day-ideas' => 'indoor activities',
     'dog-friendly-spots' => 'dog friendly places',
     'ev-charge-chill' => 'electric vehicle charging station',
     'road-rescue' => filters['need'] ?? 'roadside services',
-    'open-now' =>
-      filters['category'] == 'Anything'
-          ? 'popular places'
-          : filters['category'] ?? 'popular places',
+    'open-now' => switch (filters['category']) {
+      'Food' => 'food nearby',
+      'Coffee' => 'coffee nearby',
+      'Activities' => 'activities nearby',
+      _ => 'popular places nearby',
+    },
     'neighborhood-check' => filters['priority'] ?? 'daily errands',
     _ => mode.title,
   };
@@ -430,11 +687,62 @@ String _queryFor(DiscoveryMode mode, Map<String, String> filters) {
 String? _categoryFor(DiscoveryMode mode, Map<String, String> filters) {
   return switch (mode.id) {
     'food-wheel' || 'patio-finder' => 'restaurant',
+    'kids-bored-button' when filters['setting'] == 'Outdoor' => 'park',
+    'kids-bored-button'
+        when filters['setting'] == 'Indoor' && filters['energy'] == 'Low-key' =>
+      'museum',
+    'open-now' when filters['category'] == 'Food' => 'restaurant',
+    'open-now' when filters['category'] == 'Coffee' => 'coffee_shop',
+    'open-now' when filters['category'] == 'Activities' => 'tourist_attraction',
     'ev-charge-chill' => 'electric_vehicle_charging_station',
     'road-rescue' when filters['need'] == 'Gas' => 'gas_station',
     'road-rescue' when filters['need'] == 'Pharmacy' => 'pharmacy',
     _ => null,
   };
+}
+
+String _kidsQuery(Map<String, String> filters) {
+  final energy = switch (filters['energy']) {
+    'Active' => 'active indoor playground bowling arcade',
+    'Low-key' => 'family museum library',
+    _ => 'family parks museums arcade bowling library',
+  };
+  final setting = switch (filters['setting']) {
+    'Indoor' => 'indoor',
+    'Outdoor' => 'outdoor',
+    _ => 'nearby',
+  };
+  return '$setting $energy activities for kids';
+}
+
+double _patioScore(PlaceSummary place) {
+  var score = _hasPatioTextMatch(place.name) ? 8.0 : 0.0;
+  if (place.photoName != null) {
+    score += 3;
+  }
+  if (place.rating case final rating?) {
+    score += rating;
+  }
+  if (place.userRatingCount case final reviews?) {
+    score += switch (reviews) {
+      >= 1000 => 3,
+      >= 250 => 2,
+      >= 50 => 1,
+      _ => 0,
+    };
+  }
+  return score;
+}
+
+bool _hasPatioTextMatch(String name) {
+  final normalized = name.toLowerCase();
+  return const [
+    'patio',
+    'terrace',
+    'rooftop',
+    'garden',
+    'deck',
+  ].any(normalized.contains);
 }
 
 int _radiusMeters(String? value) {
@@ -463,6 +771,9 @@ String _imageFor(DiscoveryMode mode) {
     'road-rescue' => 'road-rescue',
     'dog-friendly-spots' => 'dog',
     'rainy-day-ideas' => 'rainy-day',
+    'allergy-map' => 'allergy',
+    'clean-air-planner' => 'air',
+    'weekend-plan' => 'weekend',
     _ => 'food',
   };
 }

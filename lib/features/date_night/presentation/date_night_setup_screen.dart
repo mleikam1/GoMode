@@ -7,6 +7,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/primary_gradient_button.dart';
+import '../../../services/api_client.dart';
 import '../data/date_night_planning_service.dart';
 import '../domain/date_night_preferences.dart';
 
@@ -112,6 +113,15 @@ class _DateNightSetupScreenState extends ConsumerState<DateNightSetupScreen> {
         return;
       }
       await context.push('/modes/date-night/plan', extra: plan);
+    } catch (error) {
+      if (mounted) {
+        final message = error is BackendException
+            ? error.userMessage
+            : 'Could not create a plan right now. Please try again.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
     } finally {
       if (mounted) {
         setState(() => _isGenerating = false);

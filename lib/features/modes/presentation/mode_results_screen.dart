@@ -273,7 +273,7 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
       );
     }
 
-    final summary = _summaryFor(mode, results.length);
+    final summary = _summaryFor(mode, results);
     return _SummaryPanel(
       icon: summary.icon,
       title: summary.title,
@@ -336,7 +336,7 @@ class _FallbackNotice extends StatelessWidget {
 
 String _resultsSubtitle(DiscoveryMode mode) {
   return switch (mode.id) {
-    'weekend-plan' => 'A simple, flexible day with five stops.',
+    'weekend-plan' => 'A balanced, flexible local itinerary.',
     'food-wheel' => 'One spin. One dinner decision.',
     'food-challenge' => 'Pick a challenge and track your progress.',
     'kids-bored-button' => 'Fast family-friendly ideas.',
@@ -376,7 +376,13 @@ class _ModeSummaryCopy {
   final bool warning;
 }
 
-_ModeSummaryCopy _summaryFor(DiscoveryMode mode, int resultCount) {
+_ModeSummaryCopy _summaryFor(DiscoveryMode mode, List<ModeResultItem> results) {
+  final resultCount = results.length;
+  final hasLiveResults = results.any((result) => !result.isDemo);
+  final hasLivePollen = results.any(
+    (result) => result.tags.contains('Live forecast'),
+  );
+  final hasLiveAir = results.any((result) => result.tags.contains('Live AQI'));
   return switch (mode.id) {
     'weekend-plan' => _ModeSummaryCopy(
       icon: Icons.calendar_month_rounded,
@@ -426,32 +432,45 @@ _ModeSummaryCopy _summaryFor(DiscoveryMode mode, int resultCount) {
           'Hours are not live. Call ahead, and use emergency services for emergencies.',
       warning: true,
     ),
-    'open-now' => const _ModeSummaryCopy(
+    'open-now' => _ModeSummaryCopy(
       icon: Icons.schedule_rounded,
       title: 'Open-now shortlist',
-      message:
-          'Live hours are unavailable in fallback mode. Verify before traveling.',
+      message: hasLiveResults
+          ? 'Google reports these places open now. Hours can change, so verify before traveling.'
+          : 'Live hours are unavailable in fallback mode. Verify before traveling.',
       warning: true,
     ),
-    'allergy-map' => const _ModeSummaryCopy(
+    'allergy-map' => _ModeSummaryCopy(
       icon: Icons.local_florist_rounded,
-      title: 'Live pollen data unavailable',
-      message:
-          'These indoor and lower-exposure ideas do not represent current pollen conditions.',
+      title: hasLivePollen
+          ? 'Pollen-aware planning'
+          : 'Live pollen unavailable',
+      message: hasLivePollen
+          ? 'Use the pollen outlook with nearby indoor or outdoor ideas and your personal medical guidance.'
+          : 'Nearby ideas do not represent current pollen conditions.',
       warning: true,
     ),
-    'clean-air-planner' => const _ModeSummaryCopy(
+    'clean-air-planner' => _ModeSummaryCopy(
       icon: Icons.air_rounded,
-      title: 'Live air quality data unavailable',
-      message:
-          'Check current AQI and heat guidance before choosing an outdoor activity.',
+      title: hasLiveAir
+          ? 'Current air-aware plan'
+          : 'Live air quality unavailable',
+      message: hasLiveAir
+          ? 'Use the current AQI as one planning signal alongside weather and personal guidance.'
+          : 'Check current AQI and heat guidance before choosing an outdoor activity.',
       warning: true,
     ),
-    'solar-checker' => const _ModeSummaryCopy(
+    'solar-checker' => _ModeSummaryCopy(
       icon: Icons.wb_sunny_rounded,
-      title: 'Lead-style preview only',
+      title: results.any((result) => result.tags.contains('Live building data'))
+          ? 'Solar building data found'
+          : results.any((result) => result.title == 'Connect Solar API')
+          ? 'Connect Solar API state'
+          : 'Solar data unavailable',
       message:
-          'No roof, shade, energy production, savings, or installation analysis has been performed.',
+          results.any((result) => result.tags.contains('Live building data'))
+          ? 'Building insight is available for review; it is not an installation recommendation.'
+          : 'No roof, shade, energy production, savings, or installation analysis has been performed.',
       warning: true,
     ),
     'neighborhood-check' => const _ModeSummaryCopy(

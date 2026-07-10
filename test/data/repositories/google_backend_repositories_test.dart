@@ -21,6 +21,7 @@ void main() {
               'formattedAddress': '1 Congress Ave, Austin, TX',
               'location': {'latitude': 30.26, 'longitude': -97.74},
               'primaryType': 'cafe',
+              'openNow': true,
               'photos': [
                 {
                   'name': 'places/place-1/photos/photo-1',
@@ -62,7 +63,7 @@ void main() {
       });
       expect(result.places.single.name, 'Live Cafe');
       expect(result.places.single.rating, isNull);
-      expect(result.places.single.openNow, isNull);
+      expect(result.places.single.openNow, isTrue);
       expect(result.places.single.photoName, 'places/place-1/photos/photo-1');
       expect(
         result.places.single.photoAttributions.single.displayName,

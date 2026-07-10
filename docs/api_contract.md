@@ -74,7 +74,7 @@ Operations return the applicable subset of this object:
 }
 ```
 
-Only fields included by the operation's fixed Google field mask can appear. In particular, `openNow` can be absent when Google has no current-hours data; it must not be treated as closed.
+Only fields included by the operation's Google field mask can appear, except that a successful `openNow: true` Text Search is normalized with `openNow: true` on each returned place. Without that filter, `openNow` can be absent when Google has no current-hours data and must not be treated as closed.
 
 ## `searchPlaces`
 
@@ -88,7 +88,7 @@ Input:
 | `longitude` | number | Yes | `-180...180` |
 | `modeId` | string | Yes | lowercase letters, digits, hyphens; max 64 |
 | `query` | string | No | trimmed; max 120 |
-| `category` | string | No | lowercase Google type form; max 64 |
+| `category` | string | No | app allowlist of current Places API (New) Table A values; max 64 |
 | `radius` | number | Yes | 50-50,000 metres |
 | `openNow` | boolean | No | default `false` |
 | `maxResults` | integer | No | 1-20; default 10 |
@@ -104,25 +104,13 @@ Response:
       "formattedAddress": "123 Example St, Austin, TX",
       "location": {"latitude": 30.2672, "longitude": -97.7431},
       "primaryType": "restaurant",
-      "types": ["restaurant"],
-      "photos": [
-        {
-          "name": "places/place-id/photos/photo-id",
-          "authorAttributions": [
-            {
-              "displayName": "Photo contributor",
-              "uri": "https://...",
-              "photoUri": "https://..."
-            }
-          ]
-        }
-      ]
+      "types": ["restaurant"]
     }
   ]
 }
 ```
 
-`maxResults` maps to the appropriate Google request field and is also enforced on the bounded response. Search fields are limited to identity, name, address, coordinates, type, and photo metadata. `openNow: true` filters Text Search results but does not add current-hours data to this response. Semantic concepts that are not valid Places types must be sent as text, not as an invented category.
+`maxResults` maps to the appropriate Google request field and is also enforced on the bounded response. The base search mask is limited to identity, name, address, coordinates, and type. Patio Finder alone adds rating, user rating count, and attributed photo metadata because those signals are used to rank its explicitly unstructured patio leads. `openNow: true` uses the Text Search filter and the backend marks returned results `openNow: true`; it does not request the full opening-hours payload. Semantic concepts such as patio seating or family friendliness are sent as text rather than invented category values. The server allowlist is checked against the current [Places API (New) Table A](https://developers.google.com/maps/documentation/places/web-service/place-types).
 
 ## `placeDetails`
 
@@ -423,3 +411,5 @@ Handlers convert expected failures to Firebase callable error codes:
 App Check rejection occurs before handler logic and is surfaced by Firebase as `unauthenticated` or another verification/authorization failure. Error details may identify a safe field or operation but never contain input payloads, Google bodies, credentials, or stack traces.
 
 Flutter repositories use demo fallback for unconfigured, timeout, rate-limit, unavailable, malformed-response, or unexpected live-service failures and mark returned models with `isDemo` plus a user-facing fallback message where applicable. Invalid requests, App Check/permission failures, and not-found results are surfaced instead of being hidden by demo data. Demo values must not be presented as current ratings, hours, routes, AQI, pollen, or Solar analysis. Tests inject fake clients; CI never calls Google.
+
+Configured Flutter clients cache idempotent normalized callable responses locally and coalesce identical in-flight requests. Search results use a 10-minute TTL, routes and current Air Quality use 15 minutes, Pollen uses 6 hours, and Solar uses 24 hours. Autocomplete, Place Details, and signed photo calls are never cached so session-token and short-lived URL semantics remain intact. Cache failures never block a live response.

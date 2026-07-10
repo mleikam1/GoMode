@@ -5,14 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gomode/app/gomode_app.dart';
 import 'package:gomode/app/router.dart';
+import 'package:gomode/data/models/backend_models.dart';
 import 'package:gomode/data/models/discovery_mode.dart';
+import 'package:gomode/data/repositories/places_repository.dart';
 import 'package:gomode/data/services/mode_catalog.dart';
 import 'package:gomode/features/modes/data/generic_mode_results_service.dart';
 import 'package:gomode/features/modes/domain/mode_flow_config.dart';
 import 'package:gomode/features/modes/presentation/mode_results_screen.dart';
+import 'package:gomode/features/modes/presentation/mode_detail_screen.dart';
 import 'package:gomode/features/saved/application/saved_library_controller.dart';
 import 'package:gomode/features/saved/data/saved_local_storage.dart';
 import 'package:gomode/features/saved/data/saved_repository.dart';
+import 'package:gomode/services/location_service.dart';
 
 void main() {
   const catalog = ModeCatalog();
@@ -220,6 +224,8 @@ void main() {
       320,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(cta);
+    await tester.pump();
     await tester.tap(cta);
     await tester.pumpAndSettle();
 
@@ -229,6 +235,8 @@ void main() {
       find.byKey(const ValueKey('mode-location-input')),
       '123 Main Street',
     );
+    await tester.ensureVisible(cta);
+    await tester.pump();
     await tester.tap(cta);
     await tester.pumpAndSettle();
 
@@ -236,6 +244,50 @@ void main() {
       find.byKey(const ValueKey('mode-results-solar-checker')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('address autocomplete debounces and closes one token session', (
+    tester,
+  ) async {
+    final places = _AutocompletePlacesRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          placesRepositoryProvider.overrideWithValue(places),
+          locationServiceProvider.overrideWithValue(
+            const _ImmediateLocationService(),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: ModeDetailScreen(modeId: 'solar-checker')),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final input = find.byKey(const ValueKey('mode-location-input'));
+    await tester.scrollUntilVisible(
+      input,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    await tester.enterText(input, '101 Congress');
+    await tester.pump(const Duration(milliseconds: 349));
+    expect(places.autocompleteCalls, 0);
+
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump();
+    expect(places.autocompleteCalls, 1);
+    expect(
+      find.byKey(const ValueKey('mode-location-suggestions')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mode-location-suggestion-0')));
+    await tester.pump();
+    expect(places.detailsSessionToken, places.autocompleteSessionToken);
+    expect(find.text('101 Congress Ave, Austin, TX'), findsOneWidget);
   });
 }
 
@@ -272,6 +324,75 @@ class _TestHarness {
   const _TestHarness(this.container);
 
   final ProviderContainer container;
+}
+
+class _AutocompletePlacesRepository implements PlacesRepository {
+  int autocompleteCalls = 0;
+  String? autocompleteSessionToken;
+  String? detailsSessionToken;
+
+  @override
+  Future<AutocompleteResult> autocomplete({
+    required String text,
+    required String sessionToken,
+    double? latitude,
+    double? longitude,
+    int? radiusMeters,
+  }) async {
+    autocompleteCalls += 1;
+    autocompleteSessionToken = sessionToken;
+    return const AutocompleteResult(
+      suggestions: [
+        AutocompleteSuggestion(
+          placeId: 'place-101',
+          fullText: '101 Congress Ave, Austin, TX',
+          primaryText: '101 Congress Ave',
+          secondaryText: 'Austin, TX',
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<PlaceDetailsResult> placeDetails(
+    String placeId, {
+    String? sessionToken,
+  }) async {
+    detailsSessionToken = sessionToken;
+    return const PlaceDetailsResult(
+      place: PlaceSummary(
+        id: 'place-101',
+        name: '101 Congress Ave',
+        address: '101 Congress Ave, Austin, TX',
+        types: ['street_address'],
+      ),
+    );
+  }
+
+  @override
+  Future<PlacePhotoResult> placePhoto(
+    String photoName, {
+    int maxWidthPx = 800,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<PlaceSearchResult> searchPlaces({
+    required double latitude,
+    required double longitude,
+    required String modeId,
+    String? query,
+    String? category,
+    int radiusMeters = 8000,
+    bool openNow = false,
+    int maxResults = 10,
+  }) => throw UnimplementedError();
+}
+
+class _ImmediateLocationService implements LocationService {
+  const _ImmediateLocationService();
+
+  @override
+  Future<AppLocation> currentOrFallback() async => austinFallbackLocation;
 }
 
 class _PendingResultsService implements GenericModeResultsService {
