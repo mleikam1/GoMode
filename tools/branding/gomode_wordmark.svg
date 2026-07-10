@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="960" viewBox="0 0 960 960">
+  <defs>
+    <linearGradient id="mode" x1="360" y1="400" x2="900" y2="570" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#27B7FF"/>
+      <stop offset="1" stop-color="#086CFF"/>
+    </linearGradient>
+  </defs>
+  <rect y="360" width="960" height="240" fill="#02071F"/>
+  <text x="348" y="534" fill="#FFFFFF" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-size="172" font-weight="900" text-anchor="end">Go</text>
+  <text x="348" y="534" fill="url(#mode)" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-size="172" font-weight="900">Mode</text>
+</svg>

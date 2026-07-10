@@ -192,3 +192,23 @@
   the Kotlin Gradle Plugin, and that `google_maps_flutter_ios` does not yet
   support Swift Package Manager. Both platforms build and launch successfully;
   these are upstream future-migration warnings rather than current blockers.
+
+## 2026-07-10 — Repeatable checks and release preparation
+
+- Standardized local Flutter verification in `tools/check.sh` and mirrored the
+  same dependency, formatting, analysis, and test sequence in GitHub Actions.
+  Android debug compilation is an opt-in manual CI step so routine pull-request
+  checks stay focused while a reproducible APK build remains available.
+- Kept release builds explicit: Android debug produces an APK, while the release
+  script produces the store-oriented App Bundle. The existing temporary debug
+  signing fallback remains buildable but is called out as a release blocker
+  until protected store signing is configured.
+- Retained `GoMode` and `com.mleikam.gomode` as the cross-platform app identity.
+  Replaced Flutter's Android launcher mark with a GoMode-specific navy icon and
+  used the approved navy/white/blue palette for native Android and iOS launch
+  screens. Checked-in SVG sources make future density asset generation
+  reviewable.
+- Defined an empty, secret-free release environment contract alongside the
+  existing Flutter `GOMODE_*` variables. Maps server credentials remain Secret
+  Manager-only; the Firebase preview helper performs local backend validation
+  and prints a scoped `functions:gomode` command without changing cloud state.
