@@ -33,6 +33,7 @@ class ModeCatalog {
       'date-night',
       'weekend-plan',
       'cheap-date',
+      'open-now',
       'tourist-mode',
     ],
     ModeCategory.familyPets: [
@@ -41,11 +42,7 @@ class ModeCatalog {
       'rainy-day-ideas',
     ],
     ModeCategory.road: ['road-trip-stops', 'ev-charge-chill', 'road-rescue'],
-    ModeCategory.healthOutdoors: [
-      'allergy-map',
-      'clean-air-planner',
-      'outdoor-ideas',
-    ],
+    ModeCategory.healthOutdoors: ['allergy-map', 'clean-air-planner'],
     ModeCategory.homeLife: [
       'solar-checker',
       'neighborhood-check',

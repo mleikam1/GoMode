@@ -51,7 +51,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Use quick constraints'), findsOneWidget);
-    expect(find.text('Preview results'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Spin the Wheel'),
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Spin the Wheel'), findsOneWidget);
   });
 }
 

@@ -76,7 +76,13 @@ void main() {
     final saveButton = find.byKey(
       const ValueKey('save-mode-result-weekend-plan-0'),
     );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('mode-result-card-weekend-plan-result-0')),
+      320,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.ensureVisible(saveButton);
+    await tester.pumpAndSettle();
     await tester.tap(saveButton);
     await tester.pumpAndSettle();
 

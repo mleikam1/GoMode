@@ -107,6 +107,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         builder: (context, state) {
                           return ModeResultsScreen(
                             modeId: state.pathParameters['modeId']!,
+                            selectedFilters: state.uri.queryParameters,
                           );
                         },
                       ),

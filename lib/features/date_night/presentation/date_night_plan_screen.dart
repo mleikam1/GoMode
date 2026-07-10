@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -279,7 +280,7 @@ class _PlanSummary extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (plan.isDemo) ...[
+                if (kDebugMode && plan.isDemo) ...[
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(

@@ -79,3 +79,14 @@
 - Kept Date Night's session store and Road Trip's saved-stop store as compatibility boundaries for their existing screens, while also writing every user action to the unified Saved repository. Their controls update optimistically before the durable local write completes.
 - Created four project-local raster thumbnails from the approved Saved art direction instead of reusing code-drawn placeholder illustrations.
 - Reduced the shared bottom-navigation height to the approved mobile proportions and tightened its internal icon/label rhythm. The same five destinations and navigation behavior remain unchanged.
+
+## 2026-07-10 Complete Mode Flows
+
+- Restored Open Now as the twentieth catalog mode, replacing Outdoor Ideas, so the product set matches the requested 20-mode list while keeping every catalog entry discoverable.
+- Kept Date Night and Road Trip Stops on their existing custom screens. The other 18 modes use one configurable setup/results flow with no more than five filters, a mode-specific CTA, a mode-accent hero, shared save/navigation actions, and explicit loading, empty, error, and retry states.
+- Added a replaceable `GenericModeResultsService` boundary. It currently returns local fallback content because Places, Routes, pollen, AQI, charger, Solar, and neighborhood backends are not connected.
+- Show fallback labels only in debug builds. Production builds do not present fallback content as live data: current hours, ratings, pet policies, charger availability, pollen, AQI, prices, solar suitability, housing costs, and commute details are either omitted or called out as unverified.
+- Solar Checker requires an address but returns only a lead-style next-step placeholder; it does not claim roof, shade, production, savings, or installation analysis.
+- Allergy Map and Clean Air Planner show that live environmental data is unavailable before offering neutral indoor/outdoor planning ideas. Dog-Friendly Spots, EV Charge & Chill, Open Now, and Road Rescue include verification or safety caveats.
+- Weekend Plan generates five ordered stops, Tourist Mode generates four self-guided stops, Food Wheel animates and selects one result, and Food Challenge plus Local Quest share local progress controls.
+- Generic result saves use the unified Saved repository and stable mode/result identifiers. Navigate currently opens the existing in-app Map tab until destination-aware map routing is connected.

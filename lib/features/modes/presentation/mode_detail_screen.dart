@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,31 +10,62 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/discovery_mode.dart';
 import '../../../data/services/mode_catalog.dart';
 import '../../../shared/widgets/shared_widgets.dart';
+import '../domain/mode_flow_config.dart';
 import 'mode_visuals.dart';
 
-class ModeDetailScreen extends ConsumerWidget {
+class ModeDetailScreen extends ConsumerStatefulWidget {
   const ModeDetailScreen({required this.modeId, super.key});
 
   final String modeId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final catalog = ref.watch(modeCatalogProvider);
-    final mode = catalog.findById(modeId);
+  ConsumerState<ModeDetailScreen> createState() => _ModeDetailScreenState();
+}
 
-    if (mode == null) {
-      return _UnknownModeScreen(modeId: modeId);
+class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
+  final TextEditingController _inputController = TextEditingController();
+  final Map<String, String> _selectedFilters = {};
+  bool _showInputError = false;
+  String? _initializedModeId;
+
+  @override
+  void didUpdateWidget(covariant ModeDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.modeId != widget.modeId) {
+      _inputController.clear();
+      _selectedFilters.clear();
+      _showInputError = false;
+      _initializedModeId = null;
     }
+  }
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final catalog = ref.watch(modeCatalogProvider);
+    final mode = catalog.findById(widget.modeId);
+    if (mode == null) {
+      return _UnknownModeScreen(modeId: widget.modeId);
+    }
+
+    final config = modeFlowConfigFor(mode);
+    _initializeSelections(mode, config);
 
     return ColoredBox(
       color: AppColors.surface,
       child: CustomScrollView(
+        key: ValueKey('mode-setup-${mode.id}'),
         slivers: [
           SliverToBoxAdapter(
             child: GradientHeader(
               compact: true,
               title: mode.title,
-              subtitle: mode.longDescription,
+              subtitle: mode.shortSubtitle,
               leading: HeaderIconButton(
                 icon: Icons.arrow_back_rounded,
                 onTap: () => _goBackToModes(context),
@@ -41,84 +73,77 @@ class ModeDetailScreen extends ConsumerWidget {
               trailing: HeaderIconButton(
                 icon: ModeCatalog.iconFor(mode.iconSemanticName),
               ),
-              bottom: Wrap(
-                spacing: AppSpacing.xs,
-                runSpacing: AppSpacing.xs,
-                children: [
-                  StatusPill(
-                    label: mode.category.label,
-                    color: mode.accentColor,
-                    filled: false,
-                  ),
-                  StatusPill(
-                    label: mode.queryStrategyType.label,
-                    color: AppColors.white,
-                    filled: false,
-                  ),
-                  if (mode.hasCustomScreen)
-                    const StatusPill(
-                      label: 'Custom screen',
-                      color: AppColors.white,
-                      filled: false,
-                    ),
-                ],
-              ),
             ),
           ),
           SliverPadding(
             padding: const EdgeInsets.all(AppSpacing.page),
             sliver: SliverList.list(
               children: [
-                SizedBox(
-                  height: 188,
-                  child: modeIllustrationFor(
-                    mode,
-                    borderRadius: AppRadius.xlBorder,
+                _ModeHeroCard(mode: mode),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  'Make it yours',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xl),
-                _ActionPanel(mode: mode),
-                const SizedBox(height: AppSpacing.xl),
-                if (mode.hasCustomScreen) ...[
-                  _CustomModePanel(mode: mode),
-                  const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: 4),
+                Text(
+                  'A few quick choices are all we need.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                if (config.requiresInput) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _ModeTextInput(
+                    controller: _inputController,
+                    label: config.inputLabel!,
+                    hint: config.inputHint,
+                    helper: config.inputHelper,
+                    errorText: _showInputError
+                        ? 'Enter a location to continue.'
+                        : null,
+                    onChanged: (_) {
+                      if (_showInputError) {
+                        setState(() => _showInputError = false);
+                      }
+                    },
+                  ),
                 ],
-                _SectionTitle(
-                  title: 'Default filters',
-                  subtitle:
-                      'These are local demo defaults until live signals are connected.',
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final filter in mode.defaultFilters)
-                      StatusPill(
-                        label: '${filter.label}: ${filter.value}',
-                        color: mode.accentColor,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                _SectionTitle(
-                  title: 'Capabilities',
-                  subtitle:
-                      'Route metadata used by the navigation and results surfaces.',
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _CapabilityGrid(mode: mode),
-                const SizedBox(height: AppSpacing.xl),
-                _SectionTitle(
-                  title: 'Demo results',
-                  subtitle:
-                      'Local sample content keeps the app rich before cloud data lands.',
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                for (final result in mode.demoResults) ...[
-                  _DemoResultCard(mode: mode, result: result),
-                  const SizedBox(height: AppSpacing.md),
+                for (final filter in config.filters) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _FilterSelector(
+                    mode: mode,
+                    filter: filter,
+                    selected: _selectedFilters[filter.id]!,
+                    onSelected: (value) {
+                      setState(() => _selectedFilters[filter.id] = value);
+                    },
+                  ),
                 ],
+                if (config.caveat != null) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _InfoNotice(
+                    icon: mode.id == 'road-rescue'
+                        ? Icons.health_and_safety_outlined
+                        : Icons.info_outline_rounded,
+                    message: config.caveat!,
+                    color: mode.id == 'road-rescue'
+                        ? AppColors.danger
+                        : mode.accentColor,
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.xl),
+                PrimaryGradientButton(
+                  label: config.ctaLabel,
+                  icon: config.ctaIcon,
+                  onPressed: () => _openResults(mode, config),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'You can adjust these choices anytime.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 SizedBox(height: AppSpacing.bottomNavHeight + AppSpacing.xl),
               ],
             ),
@@ -126,6 +151,38 @@ class ModeDetailScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _initializeSelections(DiscoveryMode mode, ModeFlowConfig config) {
+    if (_initializedModeId == mode.id) {
+      return;
+    }
+    _initializedModeId = mode.id;
+    _selectedFilters
+      ..clear()
+      ..addEntries(
+        config.filters.map(
+          (filter) => MapEntry(filter.id, filter.options.first),
+        ),
+      );
+  }
+
+  void _openResults(DiscoveryMode mode, ModeFlowConfig config) {
+    final input = _inputController.text.trim();
+    if (config.requiresInput && input.isEmpty) {
+      setState(() => _showInputError = true);
+      return;
+    }
+
+    final parameters = <String, String>{..._selectedFilters};
+    if (input.isNotEmpty) {
+      parameters['location'] = input;
+    }
+    final destination = Uri(
+      path: '/modes/${mode.id}/results',
+      queryParameters: parameters,
+    );
+    context.go(destination.toString());
   }
 }
 
@@ -137,308 +194,211 @@ void _goBackToModes(BuildContext context) {
   }
 }
 
-class _ActionPanel extends StatelessWidget {
-  const _ActionPanel({required this.mode});
+class _ModeHeroCard extends StatelessWidget {
+  const _ModeHeroCard({required this.mode});
 
   final DiscoveryMode mode;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
+        color: mode.accentColor.withValues(alpha: 0.12),
         borderRadius: AppRadius.largeCard,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: mode.accentColor.withValues(alpha: 0.28)),
         boxShadow: AppShadows.card,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PrimaryGradientButton(
-            label: 'Preview results',
-            icon: Icons.auto_awesome_rounded,
-            onPressed: () => context.go('/modes/${mode.id}/results'),
-          ),
-          if (mode.supportsMapResults) ...[
-            const SizedBox(height: AppSpacing.sm),
-            OutlinedButton.icon(
-              onPressed: () => context.go('/map'),
-              icon: const Icon(Icons.map_rounded),
-              label: const Text('Open map tab'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primaryBlue,
-                side: const BorderSide(color: AppColors.borderStrong),
-                minimumSize: const Size.fromHeight(52),
-                textStyle: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+      child: ClipRRect(
+        borderRadius: AppRadius.largeCard,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 190,
+              child: modeIllustrationFor(mode, borderRadius: BorderRadius.zero),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SoftIconBadge(
+                    icon: ModeCatalog.iconFor(mode.iconSemanticName),
+                    color: mode.accentColor,
+                    showShadow: false,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mode.longDescription,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        if (kDebugMode) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          StatusPill(
+                            label: 'Demo fallback',
+                            color: mode.accentColor,
+                            compact: true,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-class _CustomModePanel extends StatelessWidget {
-  const _CustomModePanel({required this.mode});
-
-  final DiscoveryMode mode;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: mode.accentColor.withValues(alpha: 0.10),
-        borderRadius: AppRadius.largeCard,
-        border: Border.all(color: mode.accentColor.withValues(alpha: 0.24)),
-      ),
-      child: Row(
-        children: [
-          SoftIconBadge(
-            icon: Icons.tune_rounded,
-            color: mode.accentColor,
-            showShadow: false,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Custom flow ready',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${mode.title} can branch into a tailored screen when the full experience is built.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CapabilityGrid extends StatelessWidget {
-  const _CapabilityGrid({required this.mode});
-
-  final DiscoveryMode mode;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tileWidth = (constraints.maxWidth - AppSpacing.sm) / 2;
-        return Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            _CapabilityTile(
-              width: tileWidth,
-              label: 'Map results',
-              value: mode.supportsMapResults ? 'Supported' : 'Not needed',
-              icon: Icons.map_rounded,
-              color: mode.supportsMapResults
-                  ? AppColors.primaryBlue
-                  : AppColors.textMuted,
-            ),
-            _CapabilityTile(
-              width: tileWidth,
-              label: 'Saving',
-              value: mode.supportsSaving ? 'Supported' : 'One-time use',
-              icon: Icons.bookmark_rounded,
-              color: mode.supportsSaving
-                  ? AppColors.coral
-                  : AppColors.textMuted,
-            ),
-            _CapabilityTile(
-              width: tileWidth,
-              label: 'Screen',
-              value: mode.hasCustomScreen ? 'Custom' : 'Shared',
-              icon: Icons.dashboard_customize_rounded,
-              color: mode.hasCustomScreen ? mode.accentColor : AppColors.teal,
-            ),
-            _CapabilityTile(
-              width: tileWidth,
-              label: 'Strategy',
-              value: mode.queryStrategyType.label,
-              icon: Icons.route_rounded,
-              color: mode.accentColor,
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _CapabilityTile extends StatelessWidget {
-  const _CapabilityTile({
-    required this.width,
+class _ModeTextInput extends StatelessWidget {
+  const _ModeTextInput({
+    required this.controller,
     required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
+    required this.onChanged,
+    this.hint,
+    this.helper,
+    this.errorText,
   });
 
-  final double width;
+  final TextEditingController controller;
   final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
+  final String? hint;
+  final String? helper;
+  final String? errorText;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
+    return TextField(
+      key: const ValueKey('mode-location-input'),
+      controller: controller,
+      onChanged: onChanged,
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        helperText: helper,
+        errorText: errorText,
+        prefixIcon: const Icon(Icons.location_on_outlined),
+        filled: true,
+        fillColor: AppColors.surfaceRaised,
+        border: OutlineInputBorder(
           borderRadius: AppRadius.card,
-          border: Border.all(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SoftIconBadge(
-              icon: icon,
-              color: color,
-              size: 44,
-              iconSize: 22,
-              showShadow: false,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+        enabledBorder: OutlineInputBorder(
+          borderRadius: AppRadius.card,
+          borderSide: const BorderSide(color: AppColors.border),
         ),
       ),
     );
   }
 }
 
-class _DemoResultCard extends StatelessWidget {
-  const _DemoResultCard({required this.mode, required this.result});
+class _FilterSelector extends StatelessWidget {
+  const _FilterSelector({
+    required this.mode,
+    required this.filter,
+    required this.selected,
+    required this.onSelected,
+  });
 
   final DiscoveryMode mode;
-  final ModeDemoResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: AppRadius.largeCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppShadows.soft,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 96,
-            height: 112,
-            child: demoIllustrationFor(
-              result.imageSemanticName,
-              borderRadius: AppRadius.mdBorder,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        result.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    StatusPill(
-                      label: result.distanceLabel,
-                      color: mode.accentColor,
-                      compact: true,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  result.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final tag in result.tags.take(3))
-                      StatusPill(
-                        label: tag,
-                        color: mode.accentColor,
-                        compact: true,
-                        filled: false,
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
+  final ModeFilterDefinition filter;
+  final String selected;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+        Row(
+          children: [
+            Icon(filter.icon, color: mode.accentColor, size: 21),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              filter.label,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
-        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.xs,
+          runSpacing: AppSpacing.xs,
+          children: [
+            for (final option in filter.options)
+              ChoiceChip(
+                key: ValueKey('mode-filter-${filter.id}-$option'),
+                label: Text(option),
+                selected: selected == option,
+                onSelected: (_) => onSelected(option),
+                selectedColor: mode.accentColor.withValues(alpha: 0.18),
+                side: BorderSide(
+                  color: selected == option
+                      ? mode.accentColor
+                      : AppColors.border,
+                ),
+                labelStyle: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: selected == option
+                      ? FontWeight.w900
+                      : FontWeight.w700,
+                ),
+              ),
+          ],
+        ),
       ],
+    );
+  }
+}
+
+class _InfoNotice extends StatelessWidget {
+  const _InfoNotice({
+    required this.icon,
+    required this.message,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String message;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: AppRadius.card,
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

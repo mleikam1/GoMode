@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,11 +22,13 @@ class MapScreen extends ConsumerWidget {
       color: AppColors.surface,
       child: CustomScrollView(
         slivers: [
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: GradientHeader(
               compact: true,
               title: 'Map',
-              subtitle: 'Nearby ideas from the local demo catalog.',
+              subtitle: kDebugMode
+                  ? 'Nearby ideas from the local demo catalog.'
+                  : 'Explore saved and suggested places nearby.',
             ),
           ),
           SliverPadding(
@@ -154,7 +157,9 @@ class _MapCanvas extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '12 demo ideas nearby',
+                            kDebugMode
+                                ? '12 demo ideas nearby'
+                                : 'Nearby ideas',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),

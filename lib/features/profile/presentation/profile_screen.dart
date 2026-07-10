@@ -24,7 +24,7 @@ class ProfileScreen extends ConsumerWidget {
             child: GradientHeader(
               compact: true,
               title: 'Profile',
-              subtitle: 'Demo preferences for smarter local picks.',
+              subtitle: 'Preferences for smarter local picks.',
               bottom: Row(
                 children: [
                   const SoftIconBadge(
@@ -102,7 +102,7 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.location_on_rounded,
                   color: AppColors.teal,
                   title: 'Home area',
-                  subtitle: 'Austin demo location',
+                  subtitle: 'Location services are not connected',
                   onTap: () => context.go('/map'),
                 ),
                 _ProfileRow(
@@ -116,7 +116,7 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.privacy_tip_rounded,
                   color: AppColors.amber,
                   title: 'Data controls',
-                  subtitle: 'Local demo data only',
+                  subtitle: 'Stored on this device',
                   onTap: () {},
                 ),
                 SizedBox(height: AppSpacing.bottomNavHeight + AppSpacing.xl),
