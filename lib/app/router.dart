@@ -13,6 +13,7 @@ import '../features/modes/presentation/mode_detail_screen.dart';
 import '../features/modes/presentation/mode_results_screen.dart';
 import '../features/modes/presentation/modes_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/profile/presentation/legal_screen.dart';
 import '../features/road_trip/presentation/road_trip_stops_screen.dart';
 import '../features/saved/presentation/saved_screen.dart';
 import 'navigation_shell.dart';
@@ -30,6 +31,8 @@ enum AppRoute {
   dateNightPlan,
   roadTrip,
   designDebug,
+  privacy,
+  terms,
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -158,6 +161,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/debug/design',
         name: AppRoute.designDebug.name,
         builder: (context, state) => const DesignDebugScreen(),
+      ),
+      GoRoute(
+        path: '/privacy',
+        name: AppRoute.privacy.name,
+        builder: (context, state) => const PrivacyScreen(),
+      ),
+      GoRoute(
+        path: '/terms',
+        name: AppRoute.terms.name,
+        builder: (context, state) => const TermsScreen(),
       ),
     ],
   );

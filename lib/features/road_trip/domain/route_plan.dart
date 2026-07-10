@@ -38,6 +38,9 @@ class RouteStop {
     this.distanceOffRouteMiles,
     this.detourTime,
     this.openNow,
+    this.latitude,
+    this.longitude,
+    this.googleMapsUri,
   });
 
   final String id;
@@ -47,6 +50,9 @@ class RouteStop {
   final double? distanceOffRouteMiles;
   final Duration? detourTime;
   final bool? openNow;
+  final double? latitude;
+  final double? longitude;
+  final String? googleMapsUri;
   final String locationLabel;
   final String imageAsset;
   final Set<StopCategory> categories;

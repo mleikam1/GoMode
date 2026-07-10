@@ -48,6 +48,8 @@ export const PLACE_DETAILS_FIELDS = [
   "userRatingCount",
   "currentOpeningHours.openNow",
   "googleMapsUri",
+  "websiteUri",
+  "nationalPhoneNumber",
   "photos.name",
   "photos.authorAttributions.displayName",
   "photos.authorAttributions.uri",

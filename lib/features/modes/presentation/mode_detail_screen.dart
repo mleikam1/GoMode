@@ -14,6 +14,8 @@ import '../../../data/repositories/places_repository.dart';
 import '../../../data/services/mode_catalog.dart';
 import '../../../services/location_service.dart';
 import '../../../shared/widgets/shared_widgets.dart';
+import '../../profile/application/profile_settings_controller.dart';
+import '../../profile/domain/profile_settings.dart';
 import '../domain/mode_flow_config.dart';
 import 'mode_visuals.dart';
 
@@ -31,6 +33,7 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
   final Map<String, String> _selectedFilters = {};
   bool _showInputError = false;
   String? _initializedModeId;
+  String? _initializedDefaultsKey;
   Timer? _autocompleteDebounce;
   String? _autocompleteSessionToken;
   List<AutocompleteSuggestion> _autocompleteSuggestions = const [];
@@ -45,6 +48,7 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
       _selectedFilters.clear();
       _showInputError = false;
       _initializedModeId = null;
+      _initializedDefaultsKey = null;
       _resetAutocomplete();
     }
   }
@@ -65,7 +69,8 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
     }
 
     final config = modeFlowConfigFor(mode);
-    _initializeSelections(mode, config);
+    final profileSettings = ref.watch(profileSettingsProvider).value;
+    _initializeSelections(mode, config, profileSettings);
 
     return ColoredBox(
       color: AppColors.surface,
@@ -168,16 +173,25 @@ class _ModeDetailScreenState extends ConsumerState<ModeDetailScreen> {
     );
   }
 
-  void _initializeSelections(DiscoveryMode mode, ModeFlowConfig config) {
-    if (_initializedModeId == mode.id) {
+  void _initializeSelections(
+    DiscoveryMode mode,
+    ModeFlowConfig config,
+    ProfileSettings? settings,
+  ) {
+    final defaultsKey = settings == null
+        ? 'loading'
+        : '${settings.budget.name}-${settings.distanceMiles}-${settings.setting.name}-${settings.familyFriendly}-${settings.petFriendly}-${settings.accessibilityPreferred}';
+    if (_initializedModeId == mode.id &&
+        _initializedDefaultsKey == defaultsKey) {
       return;
     }
     _initializedModeId = mode.id;
+    _initializedDefaultsKey = defaultsKey;
     _selectedFilters
       ..clear()
       ..addEntries(
         config.filters.map(
-          (filter) => MapEntry(filter.id, filter.options.first),
+          (filter) => MapEntry(filter.id, _profileDefaultFor(filter, settings)),
         ),
       );
   }
@@ -556,6 +570,31 @@ class _InfoNotice extends StatelessWidget {
       ),
     );
   }
+}
+
+String _profileDefaultFor(
+  ModeFilterDefinition filter,
+  ProfileSettings? settings,
+) {
+  if (settings == null || filter.options.isEmpty) {
+    return filter.options.first;
+  }
+  final desired = switch (filter.id) {
+    'budget' => settings.budget.label,
+    'distance' => '${settings.distanceMiles} mi',
+    'setting' => settings.setting.label,
+    'family' when settings.familyFriendly => 'Family-friendly',
+    'pet' when settings.petFriendly => 'Pet-friendly',
+    'accessibility' when settings.accessibilityPreferred => 'Accessible',
+    _ => filter.options.first,
+  };
+  if (filter.options.contains(desired)) {
+    return desired;
+  }
+  if (filter.id == 'distance') {
+    return filter.options.last;
+  }
+  return filter.options.first;
 }
 
 class _UnknownModeScreen extends StatelessWidget {

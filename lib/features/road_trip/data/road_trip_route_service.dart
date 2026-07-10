@@ -63,6 +63,9 @@ class BackendRoadTripRouteService implements RoadTripRouteService {
           ? null
           : Duration(seconds: place.detourSeconds!),
       openNow: place.openNow,
+      latitude: place.location?.latitude,
+      longitude: place.location?.longitude,
+      googleMapsUri: place.googleMapsUri?.toString(),
       locationLabel: place.address.isEmpty ? 'Along the route' : place.address,
       imageAsset: _routeImage(index),
       categories: _stopCategories(place.types),
@@ -138,6 +141,10 @@ const demoRoadTripRoutePlan = RoutePlan(
         StopCategory.gas,
         StopCategory.bathrooms,
       },
+      latitude: 29.7223,
+      longitude: -98.0742,
+      googleMapsUri:
+          'https://www.google.com/maps/search/?api=1&query=29.7223,-98.0742',
     ),
     RouteStop(
       id: 'scenic-overlook',
@@ -150,6 +157,10 @@ const demoRoadTripRoutePlan = RoutePlan(
       locationLabel: 'FM 306, Canyon Lake',
       imageAsset: 'assets/images/road_trip/scenic_overlook.png',
       categories: {StopCategory.scenic, StopCategory.bathrooms},
+      latitude: 29.8727,
+      longitude: -98.1889,
+      googleMapsUri:
+          'https://www.google.com/maps/search/?api=1&query=29.8727,-98.1889',
     ),
     RouteStop(
       id: 'local-bbq-stop',
@@ -162,6 +173,10 @@ const demoRoadTripRoutePlan = RoutePlan(
       locationLabel: 'Exit 174',
       imageAsset: 'assets/images/road_trip/local_bbq_stop.png',
       categories: {StopCategory.food, StopCategory.bathrooms},
+      latitude: 29.8064,
+      longitude: -98.0128,
+      googleMapsUri:
+          'https://www.google.com/maps/search/?api=1&query=29.8064,-98.0128',
     ),
   ],
 );

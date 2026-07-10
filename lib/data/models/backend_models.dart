@@ -31,6 +31,8 @@ class PlaceSummary {
     this.photoName,
     this.photoAttributions = const [],
     this.googleMapsUri,
+    this.websiteUri,
+    this.phoneNumber,
     this.distanceMeters,
     this.detourSeconds,
   });
@@ -47,6 +49,8 @@ class PlaceSummary {
   final String? photoName;
   final List<PlaceAttribution> photoAttributions;
   final Uri? googleMapsUri;
+  final Uri? websiteUri;
+  final String? phoneNumber;
   final int? distanceMeters;
   final int? detourSeconds;
 
@@ -58,6 +62,7 @@ class PlaceSummary {
     final firstPhoto = photos.isEmpty ? null : _map(photos.first);
     final locationJson = _map(json['location']);
     final uri = _string(json['googleMapsUri'] ?? json['mapsUri']);
+    final website = _string(json['websiteUri']);
     return PlaceSummary(
       id: _string(json['id'] ?? json['placeId'] ?? json['name']) ?? '',
       name:
@@ -92,6 +97,10 @@ class PlaceSummary {
             PlaceAttribution.fromJson(attribution),
       ],
       googleMapsUri: uri == null ? null : Uri.tryParse(uri),
+      websiteUri: website == null ? null : Uri.tryParse(website),
+      phoneNumber: _string(
+        json['nationalPhoneNumber'] ?? json['internationalPhoneNumber'],
+      ),
       distanceMeters: _int(
         json['distanceMeters'] ?? json['distanceFromRouteMeters'],
       ),

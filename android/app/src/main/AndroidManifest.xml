@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- GoMode requests location only while the app is in use. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
@@ -6,6 +8,10 @@
         android:label="GoMode"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Supply this as a restricted Gradle property; never commit a key. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOMODE_GOOGLE_MAPS_ANDROID_SDK_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

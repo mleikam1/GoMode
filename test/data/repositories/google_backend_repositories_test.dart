@@ -89,6 +89,8 @@ void main() {
             'place': {
               'id': 'place-1',
               'displayName': {'text': 'Austin'},
+              'websiteUri': 'https://example.com/austin',
+              'nationalPhoneNumber': '+1 512-555-0142',
             },
           },
         });
@@ -107,6 +109,8 @@ void main() {
         expect(client.calls.first.retryTransient, isFalse);
         expect(client.calls.last.input['sessionToken'], 'session-123');
         expect(details.place.name, 'Austin');
+        expect(details.place.websiteUri?.host, 'example.com');
+        expect(details.place.phoneNumber, '+1 512-555-0142');
       },
     );
 

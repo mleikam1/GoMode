@@ -58,6 +58,8 @@ Operations return the applicable subset of this object:
   "rating": 4.6,
   "userRatingCount": 120,
   "currentOpeningHours": {"openNow": true},
+  "websiteUri": "https://example.com",
+  "nationalPhoneNumber": "+1 512-555-0142",
   "photos": [
     {
       "name": "places/place-id/photos/photo-id",
@@ -135,6 +137,8 @@ Response:
     "rating": 4.6,
     "userRatingCount": 120,
     "currentOpeningHours": {"openNow": true},
+    "websiteUri": "https://example.com",
+    "nationalPhoneNumber": "+1 512-555-0142",
     "photos": [
       {
         "name": "places/place-id/photos/photo-id",

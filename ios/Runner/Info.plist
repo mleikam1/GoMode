@@ -27,7 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>GoMode uses your location to suggest nearby places only when you ask for local ideas.</string>
+	<string>GoMode uses your location to find nearby results and route ideas while you use the app. You can use a default city instead.</string>
+	<key>GOMODEGoogleMapsSDKKey</key>
+	<string>$(GOMODE_GOOGLE_MAPS_IOS_SDK_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

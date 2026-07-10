@@ -23,6 +23,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["GOMODE_GOOGLE_MAPS_ANDROID_SDK_KEY"] =
+            providers.gradleProperty("GOMODE_GOOGLE_MAPS_ANDROID_SDK_KEY")
+                .orElse("")
+                .get()
     }
 
     buildTypes {

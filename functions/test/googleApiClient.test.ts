@@ -137,7 +137,8 @@ test("placeDetails forwards an autocomplete session token and an explicit minima
   assert.equal(captured!.url.pathname, "/v1/places/abc%2Funsafe");
   assert.equal(captured!.url.searchParams.get("sessionToken"), "session-1");
   assert.equal(captured!.headers["X-Goog-FieldMask"], PLACE_DETAILS_FIELDS);
-  assert.equal(PLACE_DETAILS_FIELDS.includes("websiteUri"), false);
+  assert.equal(PLACE_DETAILS_FIELDS.includes("websiteUri"), true);
+  assert.equal(PLACE_DETAILS_FIELDS.includes("nationalPhoneNumber"), true);
   assert.match(PLACE_DETAILS_FIELDS, /photos\.authorAttributions\.displayName/);
 });
 

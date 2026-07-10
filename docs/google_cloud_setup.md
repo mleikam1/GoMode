@@ -218,6 +218,21 @@ Platform Firebase configuration contains public client identifiers, but reposito
 
 The Flutter build expects the following public defines when Firebase is enabled: `GOMODE_FIREBASE_API_KEY`, `GOMODE_FIREBASE_APP_ID`, `GOMODE_FIREBASE_MESSAGING_SENDER_ID`, and `GOMODE_FIREBASE_PROJECT_ID`. Optional values are `GOMODE_FIREBASE_AUTH_DOMAIN`, `GOMODE_FIREBASE_STORAGE_BUCKET`, and `GOMODE_FIREBASE_MEASUREMENT_ID`. `GOMODE_FIREBASE_FUNCTIONS_REGION` defaults to `us-central1`; web also needs the restricted public `GOMODE_RECAPTCHA_SITE_KEY`. Keep concrete app-registration values outside Git even though they are public client identifiers; documenting the target project and region is safe. Never supply the Maps server secret as a Dart define.
 
+### Native map widget (optional)
+
+The map screen works without a native SDK key by rendering the interactive
+fallback canvas. To enable `GoogleMap`, create a separate client-side Maps SDK
+key restricted to the Android package/signing certificate or iOS bundle ID and
+enable only the platform Maps SDK it needs. Do not reuse the server-side
+`GOMODE_GOOGLE_MAPS_API_KEY`.
+
+- Android: pass `GOMODE_GOOGLE_MAPS_ANDROID_SDK_KEY` as a Gradle property.
+- iOS: define `GOMODE_GOOGLE_MAPS_IOS_SDK_KEY` in an untracked or CI-provided
+  Xcode build setting.
+- Flutter: launch with
+  `--dart-define=GOMODE_MAPS_WIDGET_ENABLED=true` only after native setup is
+  complete.
+
 ## Gate 9: Local Verification and Narrow Deployment
 
 Backend tests use mocks and require no live secret:

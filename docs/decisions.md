@@ -96,8 +96,9 @@
 - Chose Firebase Functions v2 with TypeScript on the supported Node.js 22 runtime and callable functions so Flutter can use Firebase App Check without storing a server credential. All production callables enforce App Check and return bounded GoMode payloads.
 - Assigned the backend the isolated Firebase codebase name `gomode`, region `us-central1`, zero minimum instances, a maximum of three instances, and global concurrency of ten per instance. `roadTripStops` overrides concurrency to two because its bounded route workflow can fan out to three Places calls. Road-trip, Air Quality, Solar, and photo proxy operations use 30-second timeouts; other callables retain 15 seconds. Future deploys must target `functions:gomode` because the selected project already contains unrelated Gen2 Functions.
 - Kept the Google server API key exclusively in the project-isolated `GOMODE_GOOGLE_MAPS_API_KEY` Secret Manager binding. Added a separate `GOMODE_PHOTO_PROXY_SIGNING_KEY` for five-minute photo proxy URLs so neither secret nor a key-bearing Google photo URL reaches Flutter.
+
 - Added non-secret `ENABLE_SOLAR_API` and `ENABLE_AIR_QUALITY_FORECAST` flags. Disabled integrations return structured unavailable states instead of prompting an accidental API enablement or claiming missing data is live.
-- Used fixed minimal Google field masks and bounded response objects. Search requests include identity, location, type, and attributed photo metadata; details add rating, current open state, and the Google Maps URI. Phone, website, price, and broad place payloads are not requested.
+- Used fixed minimal Google field masks and bounded response objects. Search requests include identity, location, type, and attributed photo metadata; details add rating, current open state, the Google Maps URI, and only the phone/website contact fields used by place actions. Price and broad place payloads are not requested.
 - Implemented road-trip stop discovery as a bounded best-effort route plus Places workflow. It samples a limited number of points, deduplicates place IDs, and does not claim an exact detour unless it was computed.
 - Made live Firebase initialization optional in Flutter. Repositories fall back to typed Austin-based demo data when backend setup is absent or a transient call fails, while keeping the data source visible to the UI.
 - Confirmed the existing `wingman-interactive-live` project is active and billing-enabled. Places, Routes, Air Quality, Pollen, and Solar were disabled; Secret Manager contained only an unrelated secret; the existing Firebase apps, automatic client keys, and deployed Functions were unrelated to GoMode.
@@ -119,3 +120,27 @@
 - Added a versioned 32-entry local response cache for configured, idempotent backend calls. Search uses a 10-minute TTL, route/AQI 15 minutes, pollen 6 hours, and Solar 24 hours. Matching in-flight calls coalesce; autocomplete, Place Details, and photos bypass the cache.
 - Added 350 ms address autocomplete debouncing and a single Places session token that is closed by the selected Place Details request. Location denial and lookup failures continue to use the visibly marked Austin fallback.
 - Validated every hardcoded request type against the current Places API (New) Table A and added a backend allowlist so clients cannot proxy arbitrary type strings. The allowlist is intentionally narrower than Google's full catalog.
+
+## 2026-07-10 — Supporting screens, settings, and privacy
+
+- Profile settings are persisted as one versioned local JSON record so defaults
+  can evolve without spreading unrelated keys across storage. The initial
+  default-city choices are Austin, Chicago, and Denver; this avoids adding a
+  geocoding request just to browse without device location.
+- The map composes nearby place results, locally saved places that include
+  coordinates, and the active Austin-to-San Antonio road-trip preview. Saved
+  items created before coordinates were stored remain valid but are omitted
+  from the map until they are saved again from a geocoded result.
+- `google_maps_flutter` is gated by `GOMODE_MAPS_WIDGET_ENABLED` and separate,
+  platform-restricted native SDK keys. Without both native setup and the flag,
+  the app intentionally renders an interactive polished placeholder and a
+  debug-only setup note.
+- Only foreground location permission is requested. Denied, permanently denied,
+  disabled-service, and unavailable states retain a usable Austin fallback and
+  explain how to continue or change settings.
+- Reset Demo Data clears Saved and Road Trip sample state but intentionally
+  preserves profile settings. Clear Cache removes only bounded backend response
+  cache entries.
+- Developer health checks run only on demand in debug mode. They expose backend
+  configuration, the non-secret Firebase project ID, fallback state, map-widget
+  state, and a one-result Places probe without displaying credentials.

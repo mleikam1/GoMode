@@ -328,7 +328,7 @@ class ResilientPlacesRepository implements PlacesRepository {
 class DemoPlacesRepository implements PlacesRepository {
   const DemoPlacesRepository();
 
-  static const _places = [
+  static final _places = [
     PlaceSummary(
       id: 'demo-neighborhood-cafe',
       name: 'Neighborhood Cafe',
@@ -339,6 +339,11 @@ class DemoPlacesRepository implements PlacesRepository {
       userRatingCount: 328,
       openNow: null,
       primaryType: 'cafe',
+      googleMapsUri: Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=30.2684,-97.7421',
+      ),
+      websiteUri: Uri.parse('https://example.com/neighborhood-cafe'),
+      phoneNumber: '+1 512 555 0142',
     ),
     PlaceSummary(
       id: 'demo-shaded-park',
@@ -350,6 +355,9 @@ class DemoPlacesRepository implements PlacesRepository {
       userRatingCount: 912,
       openNow: null,
       primaryType: 'park',
+      googleMapsUri: Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=30.2711,-97.7502',
+      ),
     ),
     PlaceSummary(
       id: 'demo-local-market',
@@ -361,6 +369,9 @@ class DemoPlacesRepository implements PlacesRepository {
       userRatingCount: 541,
       openNow: null,
       primaryType: 'market',
+      googleMapsUri: Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=30.2637,-97.7314',
+      ),
     ),
   ];
 

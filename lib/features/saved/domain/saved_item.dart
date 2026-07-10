@@ -34,6 +34,14 @@ class SavedItem {
     this.destinationPath,
     this.progressCompleted,
     this.progressTotal,
+    this.latitude,
+    this.longitude,
+    this.rating,
+    this.address,
+    this.openNow,
+    this.googleMapsUri,
+    this.websiteUri,
+    this.phoneNumber,
   });
 
   final String id;
@@ -48,6 +56,16 @@ class SavedItem {
   final String? destinationPath;
   final int? progressCompleted;
   final int? progressTotal;
+  final double? latitude;
+  final double? longitude;
+  final double? rating;
+  final String? address;
+  final bool? openNow;
+  final String? googleMapsUri;
+  final String? websiteUri;
+  final String? phoneNumber;
+
+  bool get hasLocation => latitude != null && longitude != null;
 
   double? get progress {
     final completed = progressCompleted;
@@ -71,6 +89,14 @@ class SavedItem {
     'destinationPath': destinationPath,
     'progressCompleted': progressCompleted,
     'progressTotal': progressTotal,
+    'latitude': latitude,
+    'longitude': longitude,
+    'rating': rating,
+    'address': address,
+    'openNow': openNow,
+    'googleMapsUri': googleMapsUri,
+    'websiteUri': websiteUri,
+    'phoneNumber': phoneNumber,
   };
 
   factory SavedItem.fromJson(Map<String, Object?> json) {
@@ -87,6 +113,14 @@ class SavedItem {
       destinationPath: json['destinationPath'] as String?,
       progressCompleted: json['progressCompleted'] as int?,
       progressTotal: json['progressTotal'] as int?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      rating: (json['rating'] as num?)?.toDouble(),
+      address: json['address'] as String?,
+      openNow: json['openNow'] as bool?,
+      googleMapsUri: json['googleMapsUri'] as String?,
+      websiteUri: json['websiteUri'] as String?,
+      phoneNumber: json['phoneNumber'] as String?,
     );
   }
 }

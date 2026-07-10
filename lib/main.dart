@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/gomode_app.dart';
 import 'services/api_client.dart';
+import 'services/runtime_config.dart';
 
 const _firebaseEnabled = bool.fromEnvironment('GOMODE_FIREBASE_ENABLED');
 const _firebaseApiKey = String.fromEnvironment('GOMODE_FIREBASE_API_KEY');
@@ -13,7 +14,6 @@ const _firebaseAppId = String.fromEnvironment('GOMODE_FIREBASE_APP_ID');
 const _firebaseMessagingSenderId = String.fromEnvironment(
   'GOMODE_FIREBASE_MESSAGING_SENDER_ID',
 );
-const _firebaseProjectId = String.fromEnvironment('GOMODE_FIREBASE_PROJECT_ID');
 const _firebaseAuthDomain = String.fromEnvironment(
   'GOMODE_FIREBASE_AUTH_DOMAIN',
 );
@@ -42,14 +42,14 @@ Future<void> _initializeFirebaseBackend() async {
         _firebaseApiKey.isNotEmpty &&
         _firebaseAppId.isNotEmpty &&
         _firebaseMessagingSenderId.isNotEmpty &&
-        _firebaseProjectId.isNotEmpty;
+        firebaseProjectId.isNotEmpty;
     await Firebase.initializeApp(
       options: hasPublicOptions
           ? FirebaseOptions(
               apiKey: _firebaseApiKey,
               appId: _firebaseAppId,
               messagingSenderId: _firebaseMessagingSenderId,
-              projectId: _firebaseProjectId,
+              projectId: firebaseProjectId,
               authDomain: _optional(_firebaseAuthDomain),
               storageBucket: _optional(_firebaseStorageBucket),
               measurementId: _optional(_firebaseMeasurementId),
