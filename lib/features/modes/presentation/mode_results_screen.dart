@@ -54,7 +54,15 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
       return _UnknownResultsScreen(modeId: widget.modeId);
     }
 
-    final resultState = ref.watch(genericModeResultsProvider(mode.id));
+    final request = ModeResultsRequest(
+      modeId: mode.id,
+      filters: widget.selectedFilters,
+    );
+    final resultState = ref.watch(genericModeResultsProvider(request));
+    final showingDemo = resultState.maybeWhen(
+      data: (results) => results.any((result) => result.isDemo),
+      orElse: () => false,
+    );
     final filterValues = widget.selectedFilters.values.isNotEmpty
         ? widget.selectedFilters.values
         : mode.defaultFilters.map((filter) => filter.value);
@@ -93,7 +101,7 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
                       color: AppColors.white,
                       filled: false,
                     ),
-                  if (kDebugMode)
+                  if (showingDemo)
                     const StatusPill(
                       label: 'Demo fallback',
                       color: AppColors.white,
@@ -118,7 +126,7 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
                     mode: mode,
                     error: error,
                     onTryAgain: () =>
-                        ref.invalidate(genericModeResultsProvider(mode.id)),
+                        ref.invalidate(genericModeResultsProvider(request)),
                   ),
                   SizedBox(height: AppSpacing.bottomNavHeight + AppSpacing.xl),
                 ],
@@ -130,7 +138,7 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
                       _EmptyResultsState(
                         mode: mode,
                         onTryAgain: () =>
-                            ref.invalidate(genericModeResultsProvider(mode.id)),
+                            ref.invalidate(genericModeResultsProvider(request)),
                       ),
                       SizedBox(
                         height: AppSpacing.bottomNavHeight + AppSpacing.xl,
@@ -153,9 +161,20 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
     final visibleResults = isWheel
         ? [allResults[_wheelChoice % allResults.length]]
         : allResults;
+    String? fallbackMessage;
+    for (final result in allResults) {
+      if (result.fallbackMessage != null) {
+        fallbackMessage = result.fallbackMessage;
+        break;
+      }
+    }
 
     return SliverList.list(
       children: [
+        if (fallbackMessage != null) ...[
+          _FallbackNotice(message: fallbackMessage),
+          const SizedBox(height: AppSpacing.md),
+        ],
         _modeSummary(mode, allResults),
         const SizedBox(height: AppSpacing.xl),
         if (mode.supportsMapResults && !isWheel) ...[
@@ -278,6 +297,40 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
         ),
       );
     }
+  }
+}
+
+class _FallbackNotice extends StatelessWidget {
+  const _FallbackNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('mode-results-fallback-notice'),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withValues(alpha: 0.10),
+        borderRadius: AppRadius.largeCard,
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.32)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: AppColors.warning),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

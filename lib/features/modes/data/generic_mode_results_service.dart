@@ -1,25 +1,81 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/models/backend_models.dart';
 import '../../../data/models/discovery_mode.dart';
+import '../../../data/repositories/environment_repository.dart';
+import '../../../data/repositories/places_repository.dart';
+import '../../../data/repositories/solar_repository.dart';
 import '../../../data/services/mode_catalog.dart';
+import '../../../services/location_service.dart';
 
 final genericModeResultsServiceProvider = Provider<GenericModeResultsService>((
   ref,
 ) {
-  return const DemoGenericModeResultsService();
+  return BackendGenericModeResultsService(
+    places: ref.watch(placesRepositoryProvider),
+    environment: ref.watch(environmentRepositoryProvider),
+    solar: ref.watch(solarRepositoryProvider),
+    location: ref.watch(locationServiceProvider),
+  );
 });
 
 final genericModeResultsProvider = FutureProvider.autoDispose
-    .family<List<ModeResultItem>, String>((ref, modeId) async {
-      final mode = ref.watch(modeCatalogProvider).findById(modeId);
+    .family<List<ModeResultItem>, ModeResultsRequest>((ref, request) async {
+      final mode = ref.watch(modeCatalogProvider).findById(request.modeId);
       if (mode == null) {
-        throw StateError('Unknown discovery mode: $modeId');
+        throw StateError('Unknown discovery mode: ${request.modeId}');
       }
-      return ref.watch(genericModeResultsServiceProvider).load(mode);
+      final service = ref.watch(genericModeResultsServiceProvider);
+      if (service is FilterAwareGenericModeResultsService) {
+        return service.loadWithFilters(mode, request.filters);
+      }
+      return service.load(mode);
     });
+
+class ModeResultsRequest {
+  ModeResultsRequest({
+    required this.modeId,
+    Map<String, String> filters = const {},
+  }) : filters = Map.unmodifiable(filters);
+
+  final String modeId;
+  final Map<String, String> filters;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! ModeResultsRequest ||
+        modeId != other.modeId ||
+        filters.length != other.filters.length) {
+      return false;
+    }
+    return filters.entries.every(
+      (entry) => other.filters[entry.key] == entry.value,
+    );
+  }
+
+  @override
+  int get hashCode {
+    final entries = filters.entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+    return Object.hash(
+      modeId,
+      Object.hashAll(
+        entries.map((entry) => Object.hash(entry.key, entry.value)),
+      ),
+    );
+  }
+}
 
 abstract interface class GenericModeResultsService {
   Future<List<ModeResultItem>> load(DiscoveryMode mode);
+}
+
+abstract interface class FilterAwareGenericModeResultsService
+    implements GenericModeResultsService {
+  Future<List<ModeResultItem>> loadWithFilters(
+    DiscoveryMode mode,
+    Map<String, String> filters,
+  );
 }
 
 class ModeResultItem {
@@ -33,6 +89,8 @@ class ModeResultItem {
     required this.tags,
     this.rating,
     this.openStatus,
+    this.isDemo = false,
+    this.fallbackMessage,
   });
 
   final String id;
@@ -44,6 +102,8 @@ class ModeResultItem {
   final List<String> tags;
   final double? rating;
   final String? openStatus;
+  final bool isDemo;
+  final String? fallbackMessage;
 }
 
 class DemoGenericModeResultsService implements GenericModeResultsService {
@@ -101,8 +161,310 @@ class DemoGenericModeResultsService implements GenericModeResultsService {
       ],
       rating: null,
       openStatus: placeLike ? 'Hours unverified' : null,
+      isDemo: true,
     );
   }
+}
+
+class BackendGenericModeResultsService
+    implements FilterAwareGenericModeResultsService {
+  BackendGenericModeResultsService({
+    required PlacesRepository places,
+    required EnvironmentRepository environment,
+    required SolarRepository solar,
+    required LocationService location,
+    DemoGenericModeResultsService demo = const DemoGenericModeResultsService(),
+  }) : this._(places, environment, solar, location, demo);
+
+  BackendGenericModeResultsService._(
+    this._places,
+    this._environment,
+    this._solar,
+    this._location,
+    this._demo,
+  );
+
+  final PlacesRepository _places;
+  final EnvironmentRepository _environment;
+  final SolarRepository _solar;
+  final LocationService _location;
+  final DemoGenericModeResultsService _demo;
+
+  @override
+  Future<List<ModeResultItem>> load(DiscoveryMode mode) {
+    return loadWithFilters(mode, const {});
+  }
+
+  @override
+  Future<List<ModeResultItem>> loadWithFilters(
+    DiscoveryMode mode,
+    Map<String, String> filters,
+  ) async {
+    return switch (mode.queryStrategyType) {
+      ModeQueryStrategyType.nearbyPlaces ||
+      ModeQueryStrategyType.textSearch ||
+      ModeQueryStrategyType.routeSearch => _loadPlaces(mode, filters),
+      ModeQueryStrategyType.environmental => _loadEnvironment(mode),
+      ModeQueryStrategyType.solar => _loadSolar(mode, filters),
+      _ => _demo.load(mode),
+    };
+  }
+
+  Future<List<ModeResultItem>> _loadPlaces(
+    DiscoveryMode mode,
+    Map<String, String> filters,
+  ) async {
+    final location = await _location.currentOrFallback();
+    final result = await _places.searchPlaces(
+      latitude: location.latitude,
+      longitude: location.longitude,
+      modeId: mode.id,
+      query: _queryFor(mode, filters),
+      category: _categoryFor(mode, filters),
+      radiusMeters: _radiusMeters(filters['distance']),
+      openNow:
+          mode.id == 'open-now' ||
+          filters.values.any((value) => value.toLowerCase() == 'open now'),
+      maxResults: mode.id == 'food-wheel' ? 8 : 10,
+    );
+    return [
+      for (final place in result.places)
+        _placeItem(
+          mode: mode,
+          place: place,
+          isDemo: result.isDemo,
+          fallbackMessage: result.fallbackMessage,
+          locationFallback: location.isFallback,
+        ),
+    ];
+  }
+
+  Future<List<ModeResultItem>> _loadEnvironment(DiscoveryMode mode) async {
+    final location = await _location.currentOrFallback();
+    if (mode.id == 'allergy-map') {
+      final report = await _environment.pollen(
+        latitude: location.latitude,
+        longitude: location.longitude,
+      );
+      if (report.isDemo || report.days.isEmpty) {
+        return _markDemo(
+          await _demo.load(mode),
+          report.fallbackMessage ??
+              'Live pollen data is unavailable. Showing lower-exposure ideas.',
+        );
+      }
+      final today = report.days.first;
+      final level = today.category ?? 'Current pollen';
+      return [
+        ModeResultItem(
+          id: '${mode.id}-live-pollen',
+          title: '$level pollen outlook',
+          subtitle: today.inSeasonTypes.isEmpty
+              ? 'Current conditions near ${location.label}'
+              : '${today.inSeasonTypes.join(', ')} in season',
+          detail:
+              'Use this forecast as a planning signal and follow personal medical guidance.',
+          distanceLabel: 'Current area',
+          imageSemanticName: 'allergy',
+          tags: [
+            if (today.indexValue != null) 'Index ${today.indexValue}',
+            'Live forecast',
+            if (location.isFallback) 'Austin fallback',
+          ],
+        ),
+      ];
+    }
+
+    final report = await _environment.airQuality(
+      latitude: location.latitude,
+      longitude: location.longitude,
+    );
+    if (report.isDemo || report.aqi == null) {
+      return _markDemo(
+        await _demo.load(mode),
+        report.fallbackMessage ??
+            'Live air-quality data is unavailable. Verify conditions before leaving.',
+      );
+    }
+    return [
+      ModeResultItem(
+        id: '${mode.id}-live-aqi',
+        title: 'AQI ${report.aqi} · ${report.category ?? 'Current conditions'}',
+        subtitle: 'Air quality near ${location.label}',
+        detail:
+            report.healthRecommendation ??
+            'Use the current AQI to choose an indoor or outdoor plan.',
+        distanceLabel: 'Current area',
+        imageSemanticName: 'air',
+        tags: [
+          'Live AQI',
+          if (report.dominantPollutant != null) report.dominantPollutant!,
+          if (location.isFallback) 'Austin fallback',
+        ],
+      ),
+    ];
+  }
+
+  Future<List<ModeResultItem>> _loadSolar(
+    DiscoveryMode mode,
+    Map<String, String> filters,
+  ) async {
+    final address = filters['location']?.trim() ?? '';
+    if (address.isEmpty) {
+      return _markDemo(
+        await _demo.load(mode),
+        'Enter an address to request a live solar check.',
+      );
+    }
+    final result = await _solar.solarCheck(address);
+    if (!result.available) {
+      return [
+        ModeResultItem(
+          id: '${mode.id}-unavailable',
+          title: 'Solar data unavailable',
+          subtitle: address,
+          detail:
+              result.reason ??
+              'No roof suitability or savings estimate was performed.',
+          distanceLabel: 'Unavailable',
+          imageSemanticName: 'solar',
+          tags: const ['No estimate', 'Try another address'],
+          isDemo: result.isDemo,
+          fallbackMessage: result.reason,
+        ),
+      ];
+    }
+    return [
+      ModeResultItem(
+        id: '${mode.id}-live',
+        title: 'Solar roof data found',
+        subtitle: result.address,
+        detail: result.maxSunshineHoursPerYear == null
+            ? 'Building insights are available for a professional review.'
+            : '${result.maxSunshineHoursPerYear!.round()} estimated sunshine hours per year.',
+        distanceLabel: result.maxArrayPanelsCount == null
+            ? 'Review ready'
+            : 'Up to ${result.maxArrayPanelsCount} panels',
+        imageSemanticName: 'solar',
+        tags: const ['Live building data', 'Installer review'],
+      ),
+    ];
+  }
+
+  List<ModeResultItem> _markDemo(List<ModeResultItem> items, String message) {
+    return [
+      for (final item in items)
+        ModeResultItem(
+          id: item.id,
+          title: item.title,
+          subtitle: item.subtitle,
+          detail: item.detail,
+          distanceLabel: item.distanceLabel,
+          imageSemanticName: item.imageSemanticName,
+          tags: item.tags,
+          rating: item.rating,
+          openStatus: item.openStatus,
+          isDemo: true,
+          fallbackMessage: message,
+        ),
+    ];
+  }
+
+  ModeResultItem _placeItem({
+    required DiscoveryMode mode,
+    required PlaceSummary place,
+    required bool isDemo,
+    required String? fallbackMessage,
+    required bool locationFallback,
+  }) {
+    final openStatus = switch (place.openNow) {
+      true => 'Open now',
+      false => 'Closed now',
+      null => 'Hours unverified',
+    };
+    return ModeResultItem(
+      id: place.id.isEmpty ? '${mode.id}-${place.name.hashCode}' : place.id,
+      title: place.name,
+      subtitle: place.address.isEmpty
+          ? _readableType(place.primaryType) ?? 'Nearby place'
+          : place.address,
+      detail: place.rating == null
+          ? 'Open place details to confirm current hours and availability.'
+          : 'Rated ${place.rating!.toStringAsFixed(1)} from ${place.userRatingCount ?? 0} reviews.',
+      distanceLabel: place.distanceMeters == null
+          ? 'Nearby'
+          : _distanceLabel(place.distanceMeters!),
+      imageSemanticName: _imageFor(mode),
+      tags: [
+        ?_readableType(place.primaryType),
+        openStatus,
+        if (locationFallback) 'Austin fallback',
+      ],
+      rating: place.rating,
+      openStatus: openStatus,
+      isDemo: isDemo,
+      fallbackMessage: fallbackMessage,
+    );
+  }
+}
+
+String _queryFor(DiscoveryMode mode, Map<String, String> filters) {
+  return switch (mode.id) {
+    'food-wheel' => 'restaurant',
+    'patio-finder' => 'restaurant patio',
+    'cheap-date' => 'affordable date activities',
+    'kids-bored-button' => 'family activities',
+    'rainy-day-ideas' => 'indoor activities',
+    'dog-friendly-spots' => 'dog friendly places',
+    'ev-charge-chill' => 'electric vehicle charging station',
+    'road-rescue' => filters['need'] ?? 'roadside services',
+    'open-now' =>
+      filters['category'] == 'Anything'
+          ? 'popular places'
+          : filters['category'] ?? 'popular places',
+    'neighborhood-check' => filters['priority'] ?? 'daily errands',
+    _ => mode.title,
+  };
+}
+
+String? _categoryFor(DiscoveryMode mode, Map<String, String> filters) {
+  return switch (mode.id) {
+    'food-wheel' || 'patio-finder' => 'restaurant',
+    'ev-charge-chill' => 'electric_vehicle_charging_station',
+    'road-rescue' when filters['need'] == 'Gas' => 'gas_station',
+    'road-rescue' when filters['need'] == 'Pharmacy' => 'pharmacy',
+    _ => null,
+  };
+}
+
+int _radiusMeters(String? value) {
+  final miles = int.tryParse(
+    RegExp(r'\d+').firstMatch(value ?? '')?.group(0) ?? '',
+  );
+  return miles == null ? 8000 : (miles * 1609.344).round();
+}
+
+String _distanceLabel(int meters) {
+  final miles = meters / 1609.344;
+  return '${miles.toStringAsFixed(miles < 10 ? 1 : 0)} mi';
+}
+
+String? _readableType(String? value) {
+  if (value == null || value.isEmpty) {
+    return null;
+  }
+  final text = value.replaceAll('_', ' ');
+  return '${text[0].toUpperCase()}${text.substring(1)}';
+}
+
+String _imageFor(DiscoveryMode mode) {
+  return switch (mode.id) {
+    'ev-charge-chill' => 'ev',
+    'road-rescue' => 'road-rescue',
+    'dog-friendly-spots' => 'dog',
+    'rainy-day-ideas' => 'rainy-day',
+    _ => 'food',
+  };
 }
 
 const _weekendItinerary = <ModeDemoResult>[

@@ -9,6 +9,13 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # Flutter 3.44 materializes SwiftPM plugin sources under build/ during
+  # dependency resolution. They are third-party generated copies and include
+  # example apps that are intentionally incomplete outside their own packages.
+  exclude:
+    - build/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

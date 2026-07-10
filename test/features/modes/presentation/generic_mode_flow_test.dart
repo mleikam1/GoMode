@@ -149,6 +149,34 @@ void main() {
     },
   );
 
+  testWidgets('demo fallback explains why live results are unavailable', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          genericModeResultsServiceProvider.overrideWithValue(
+            const _FallbackResultsService(),
+          ),
+        ],
+        child: const MaterialApp(
+          home: ModeResultsScreen(modeId: 'patio-finder'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('mode-results-fallback-notice')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Live places are temporarily unavailable.'),
+      findsOneWidget,
+    );
+    expect(find.text('Demo fallback'), findsOneWidget);
+  });
+
   testWidgets('Food Wheel animates and chooses a new restaurant', (
     tester,
   ) async {
@@ -263,6 +291,27 @@ class _ErrorThenEmptyResultsService implements GenericModeResultsService {
       throw StateError('Test failure');
     }
     return [];
+  }
+}
+
+class _FallbackResultsService implements GenericModeResultsService {
+  const _FallbackResultsService();
+
+  @override
+  Future<List<ModeResultItem>> load(DiscoveryMode mode) async {
+    return const [
+      ModeResultItem(
+        id: 'fallback-result',
+        title: 'Demo patio',
+        subtitle: 'Austin, TX',
+        detail: 'A local demo result.',
+        distanceLabel: 'Nearby',
+        imageSemanticName: 'patio',
+        tags: ['Demo'],
+        isDemo: true,
+        fallbackMessage: 'Live places are temporarily unavailable.',
+      ),
+    ];
   }
 }
 

@@ -164,7 +164,7 @@ class _RouteStopCard extends StatelessWidget {
                     _RatingRow(stop: stop),
                     const SizedBox(height: 1),
                     Text(
-                      '${stop.distanceOffRouteMiles.toStringAsFixed(1)} mi off route  •  ${stop.locationLabel}',
+                      '${_distanceLabel(stop.distanceOffRouteMiles)}  •  ${stop.locationLabel}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -177,16 +177,29 @@ class _RouteStopCard extends StatelessWidget {
                       children: [
                         _InfoPill(
                           icon: Icons.schedule_rounded,
-                          label: '${stop.detourTime.inMinutes} min detour',
+                          label: stop.detourTime == null
+                              ? 'Detour not computed'
+                              : '${stop.detourTime!.inMinutes} min detour',
                           color: AppColors.lavender,
                         ),
                         const SizedBox(width: 6),
-                        if (stop.openNow)
-                          const _InfoPill(
-                            icon: Icons.check_circle_rounded,
-                            label: 'Open now',
-                            color: AppColors.success,
-                          ),
+                        _InfoPill(
+                          icon: switch (stop.openNow) {
+                            true => Icons.check_circle_rounded,
+                            false => Icons.cancel_rounded,
+                            null => Icons.help_outline_rounded,
+                          },
+                          label: switch (stop.openNow) {
+                            true => 'Open now',
+                            false => 'Closed now',
+                            null => 'Hours unverified',
+                          },
+                          color: switch (stop.openNow) {
+                            true => AppColors.success,
+                            false => AppColors.coral,
+                            null => AppColors.textMuted,
+                          },
+                        ),
                       ],
                     ),
                     const Spacer(),
@@ -232,13 +245,39 @@ class _RatingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rating = stop.rating;
+    if (rating == null) {
+      return Row(
+        children: [
+          const Icon(
+            Icons.star_outline_rounded,
+            size: 14,
+            color: AppColors.textMuted,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              stop.reviewCount == null
+                  ? 'Rating & reviews unverified'
+                  : 'Rating unverified (${_formatCount(stop.reviewCount!)} reviews)',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppColors.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       children: [
         for (var index = 0; index < 5; index++)
-          const Icon(Icons.star_rounded, size: 14, color: AppColors.amber),
+          Icon(_starIcon(rating, index), size: 14, color: AppColors.amber),
         const SizedBox(width: 5),
         Text(
-          stop.rating.toStringAsFixed(1),
+          rating.toStringAsFixed(1),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: AppColors.textSecondary,
             fontWeight: FontWeight.w900,
@@ -247,7 +286,9 @@ class _RatingRow extends StatelessWidget {
         const SizedBox(width: 5),
         Flexible(
           child: Text(
-            '(${_formatCount(stop.reviewCount)})',
+            stop.reviewCount == null
+                ? '(reviews unverified)'
+                : '(${_formatCount(stop.reviewCount!)})',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -259,6 +300,23 @@ class _RatingRow extends StatelessWidget {
       ],
     );
   }
+}
+
+String _distanceLabel(double? distanceOffRouteMiles) {
+  return distanceOffRouteMiles == null
+      ? 'Distance off route not computed'
+      : '${distanceOffRouteMiles.toStringAsFixed(1)} mi off route';
+}
+
+IconData _starIcon(double rating, int index) {
+  final remaining = rating - index;
+  if (remaining >= 0.75) {
+    return Icons.star_rounded;
+  }
+  if (remaining >= 0.25) {
+    return Icons.star_half_rounded;
+  }
+  return Icons.star_border_rounded;
 }
 
 class _InfoPill extends StatelessWidget {

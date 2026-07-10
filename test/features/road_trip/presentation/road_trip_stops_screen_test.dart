@@ -3,10 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gomode/app/gomode_app.dart';
 import 'package:gomode/app/router.dart';
+import 'package:gomode/features/road_trip/data/road_trip_route_service.dart';
 import 'package:gomode/features/road_trip/data/route_stop_store.dart';
 import 'package:gomode/features/road_trip/domain/route_plan.dart';
 
 void main() {
+  test('saved descriptions do not invent an absent rating', () {
+    expect(
+      _unknownTelemetryPlan.stops.single.savedDescription,
+      'Along the route · Rating unverified',
+    );
+  });
+
   testWidgets('Road Trip Stops renders the route summary', (tester) async {
     await _pumpRoadTripStops(tester);
 
@@ -20,6 +28,28 @@ void main() {
     expect(find.text('Buc-ee’s New Braunfels'), findsOneWidget);
     expect(find.text('Scenic Overlook'), findsOneWidget);
     expect(find.text('Local BBQ Stop'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('road-trip-demo-fallback')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('live stops disclose telemetry the backend did not return', (
+    tester,
+  ) async {
+    await _pumpRoadTripStops(
+      tester,
+      routeService: const _StaticRouteService(_unknownTelemetryPlan),
+    );
+
+    expect(find.text('Rating & reviews unverified'), findsOneWidget);
+    expect(
+      find.textContaining('Distance off route not computed'),
+      findsOneWidget,
+    );
+    expect(find.text('Detour not computed'), findsOneWidget);
+    expect(find.text('Hours unverified'), findsOneWidget);
+    expect(find.byKey(const ValueKey('road-trip-demo-fallback')), findsNothing);
   });
 
   testWidgets('quick filters update selected state and visible stops', (
@@ -85,11 +115,27 @@ void main() {
 
     expect(find.byKey(const ValueKey('route-results-list')), findsOneWidget);
   });
+
+  testWidgets('route failure offers a working retry', (tester) async {
+    final service = _ErrorThenRouteService();
+    await _pumpRoadTripStops(tester, routeService: service);
+
+    expect(find.text('Route stops are unavailable'), findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
+
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+
+    expect(service.calls, 2);
+    expect(find.text('Austin to San Antonio'), findsOneWidget);
+    expect(find.byKey(const ValueKey('route-results-list')), findsOneWidget);
+  });
 }
 
 Future<void> _pumpRoadTripStops(
   WidgetTester tester, {
   _RecordingRouteStopStore? store,
+  RoadTripRouteService? routeService,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(390, 844);
@@ -98,7 +144,11 @@ Future<void> _pumpRoadTripStops(
 
   final routeStopStore = store ?? _RecordingRouteStopStore();
   final container = ProviderContainer(
-    overrides: [routeStopStoreProvider.overrideWithValue(routeStopStore)],
+    overrides: [
+      routeStopStoreProvider.overrideWithValue(routeStopStore),
+      if (routeService != null)
+        roadTripRouteServiceProvider.overrideWithValue(routeService),
+    ],
   );
   addTearDown(container.dispose);
 
@@ -108,6 +158,28 @@ Future<void> _pumpRoadTripStops(
   await tester.pumpAndSettle();
   container.read(appRouterProvider).go('/modes/road-trip-stops');
   await tester.pumpAndSettle();
+}
+
+class _ErrorThenRouteService implements RoadTripRouteService {
+  int calls = 0;
+
+  @override
+  Future<RoutePlan> loadRoutePlan() async {
+    calls += 1;
+    if (calls == 1) {
+      throw StateError('Temporary route failure');
+    }
+    return demoRoadTripRoutePlan;
+  }
+}
+
+class _StaticRouteService implements RoadTripRouteService {
+  const _StaticRouteService(this.plan);
+
+  final RoutePlan plan;
+
+  @override
+  Future<RoutePlan> loadRoutePlan() async => plan;
 }
 
 class _RecordingRouteStopStore implements RouteStopStore {
@@ -129,3 +201,24 @@ class _RecordingRouteStopStore implements RouteStopStore {
     }
   }
 }
+
+const _unknownTelemetryPlan = RoutePlan(
+  id: 'live-route',
+  routeSubtitle: 'Austin to San Antonio',
+  summary: RouteSummary(
+    origin: 'Austin, TX',
+    destination: 'San Antonio, TX',
+    totalDistanceMiles: 82,
+    estimatedDriveTime: Duration(hours: 1, minutes: 23),
+    progress: 0.42,
+  ),
+  stops: [
+    RouteStop(
+      id: 'live-stop',
+      title: 'Live Route Stop',
+      locationLabel: 'Along the route',
+      imageAsset: 'assets/images/road_trip/scenic_overlook.png',
+      categories: {StopCategory.scenic},
+    ),
+  ],
+);

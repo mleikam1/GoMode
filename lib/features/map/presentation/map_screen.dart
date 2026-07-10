@@ -8,6 +8,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/services/mode_catalog.dart';
+import '../../../services/location_service.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 
 class MapScreen extends ConsumerWidget {
@@ -17,6 +18,7 @@ class MapScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final catalog = ref.watch(modeCatalogProvider);
     final modes = catalog.mapModes.take(8).toList();
+    final location = ref.watch(effectiveLocationProvider);
 
     return ColoredBox(
       color: AppColors.surface,
@@ -35,7 +37,10 @@ class MapScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.page),
             sliver: SliverList.list(
               children: [
-                const _MapCanvas(),
+                _MapCanvas(
+                  location: location,
+                  onLocate: () => ref.invalidate(effectiveLocationProvider),
+                ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
                   'Map-ready modes',
@@ -66,7 +71,10 @@ class MapScreen extends ConsumerWidget {
 }
 
 class _MapCanvas extends StatelessWidget {
-  const _MapCanvas();
+  const _MapCanvas({required this.location, required this.onLocate});
+
+  final AsyncValue<AppLocation> location;
+  final VoidCallback onLocate;
 
   @override
   Widget build(BuildContext context) {
@@ -102,14 +110,26 @@ class _MapCanvas extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.location_on_rounded,
+                          Icon(
+                            location.maybeWhen(
+                              data: (value) => value.isFallback
+                                  ? Icons.location_disabled_rounded
+                                  : Icons.my_location_rounded,
+                              orElse: () => Icons.location_searching_rounded,
+                            ),
                             color: AppColors.primaryBlue,
                           ),
                           const SizedBox(width: AppSpacing.xs),
                           Expanded(
                             child: Text(
-                              'Austin, TX',
+                              location.when(
+                                data: (value) => value.isFallback
+                                    ? '${value.label} fallback'
+                                    : value.label,
+                                error: (error, stackTrace) =>
+                                    'Austin, TX fallback',
+                                loading: () => 'Finding your location…',
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleSmall
@@ -125,7 +145,8 @@ class _MapCanvas extends StatelessWidget {
                     color: AppColors.white,
                     shape: const CircleBorder(),
                     child: IconButton(
-                      onPressed: () {},
+                      tooltip: 'Use current location',
+                      onPressed: onLocate,
                       icon: const Icon(Icons.my_location_rounded),
                       color: AppColors.primaryBlue,
                     ),

@@ -105,7 +105,9 @@ class RouteMapPlaceholder extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '+${plan.stops[index].detourTime.inMinutes} min',
+                  plan.stops[index].detourTime == null
+                      ? 'Not computed'
+                      : '+${plan.stops[index].detourTime!.inMinutes} min',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.lavender,
                     fontWeight: FontWeight.w800,

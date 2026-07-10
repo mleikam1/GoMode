@@ -26,7 +26,7 @@ class RoadTripStopsScreen extends ConsumerStatefulWidget {
 }
 
 class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
-  late final Future<RoutePlan> _routePlan;
+  late Future<RoutePlan> _routePlan;
   RoadTripView _selectedView = RoadTripView.results;
   final Set<StopCategory> _selectedFilters = {};
   Set<String> _savedStopIds = {};
@@ -34,7 +34,7 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
   @override
   void initState() {
     super.initState();
-    _routePlan = ref.read(roadTripRouteServiceProvider).loadRoutePlan();
+    _routePlan = _loadRoutePlan();
     _loadSavedStops();
   }
 
@@ -59,7 +59,7 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
           final plan = snapshot.data;
           if (plan == null) {
             if (snapshot.hasError) {
-              return _RouteLoadError(onBack: _goBack);
+              return _RouteLoadError(onBack: _goBack, onTryAgain: _retryRoute);
             }
             return const Center(child: CircularProgressIndicator());
           }
@@ -153,6 +153,16 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
     }
   }
 
+  Future<RoutePlan> _loadRoutePlan() {
+    return ref.read(roadTripRouteServiceProvider).loadRoutePlan();
+  }
+
+  void _retryRoute() {
+    setState(() {
+      _routePlan = _loadRoutePlan();
+    });
+  }
+
   void _toggleFilter(StopCategory category) {
     setState(() {
       if (!_selectedFilters.add(category)) {
@@ -208,7 +218,7 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
       type: SavedItemType.place,
       categoryLabel: 'Road Trip Stop',
       title: stop.title,
-      description: '${stop.locationLabel} · ${stop.rating} stars',
+      description: stop.savedDescription,
       savedAt: DateTime.now(),
       status: SavedItemStatus.saved,
       visual: SavedItemVisual.place,
@@ -325,6 +335,34 @@ class _RoadTripHeader extends StatelessWidget {
                                   ),
                             ),
                           ),
+                          if (plan.isDemo) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              key: const ValueKey('road-trip-demo-fallback'),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withValues(alpha: 0.12),
+                                borderRadius: AppRadius.chip,
+                                border: Border.all(
+                                  color: AppColors.white.withValues(
+                                    alpha: 0.18,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                'Demo fallback',
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 9,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -821,9 +859,10 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _RouteLoadError extends StatelessWidget {
-  const _RouteLoadError({required this.onBack});
+  const _RouteLoadError({required this.onBack, required this.onTryAgain});
 
   final VoidCallback onBack;
+  final VoidCallback onTryAgain;
 
   @override
   Widget build(BuildContext context) {
@@ -845,8 +884,25 @@ class _RouteLoadError extends StatelessWidget {
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Check your connection and try again.',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppSpacing.md),
-            OutlinedButton(onPressed: onBack, child: const Text('Back')),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton(onPressed: onBack, child: const Text('Back')),
+                const SizedBox(width: AppSpacing.sm),
+                FilledButton.icon(
+                  onPressed: onTryAgain,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Try again'),
+                ),
+              ],
+            ),
           ],
         ),
       ),

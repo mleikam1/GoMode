@@ -1,0 +1,22 @@
+{
+  "name": "gomode-functions",
+  "version": "1.0.0",
+  "private": true,
+  "main": "lib/src/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "npm run build && node --test lib/test/**/*.test.js",
+    "test:watch": "npm run build && node --test --watch lib/test/**/*.test.js"
+  },
+  "dependencies": {
+    "firebase-functions": "^7.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

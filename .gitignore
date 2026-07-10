@@ -50,13 +50,29 @@ app.*.map.json
 !.env.example
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.pem
+*.p8
+*.key
 android/key.properties
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+
+# Backend credentials and local Firebase Functions secrets
+functions/.secret.local
+functions/.runtimeconfig.json
+**/service-account*.json
+**/service_account*.json
+**/application_default_credentials.json
+**/credentials*.json
+**/client_secret*.json
 
 # Firebase and Google tooling caches
 .firebase/
 firebase-debug.log
+firebase-debug.*.log
 firestore-debug.log
 ui-debug.log

@@ -30,26 +30,33 @@ class RouteStop {
   const RouteStop({
     required this.id,
     required this.title,
-    required this.rating,
-    required this.reviewCount,
-    required this.distanceOffRouteMiles,
-    required this.detourTime,
-    required this.openNow,
     required this.locationLabel,
     required this.imageAsset,
     required this.categories,
+    this.rating,
+    this.reviewCount,
+    this.distanceOffRouteMiles,
+    this.detourTime,
+    this.openNow,
   });
 
   final String id;
   final String title;
-  final double rating;
-  final int reviewCount;
-  final double distanceOffRouteMiles;
-  final Duration detourTime;
-  final bool openNow;
+  final double? rating;
+  final int? reviewCount;
+  final double? distanceOffRouteMiles;
+  final Duration? detourTime;
+  final bool? openNow;
   final String locationLabel;
   final String imageAsset;
   final Set<StopCategory> categories;
+
+  String get savedDescription {
+    final ratingDescription = rating == null
+        ? 'Rating unverified'
+        : '${rating!.toStringAsFixed(1)} stars';
+    return '$locationLabel · $ratingDescription';
+  }
 }
 
 class RoutePlan {
@@ -59,6 +66,7 @@ class RoutePlan {
     required this.summary,
     required this.stops,
     this.isDemo = false,
+    this.strategy,
   });
 
   final String id;
@@ -66,4 +74,5 @@ class RoutePlan {
   final RouteSummary summary;
   final List<RouteStop> stops;
   final bool isDemo;
+  final String? strategy;
 }
