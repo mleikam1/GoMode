@@ -4,18 +4,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gomode/app/gomode_app.dart';
 
 void main() {
-  testWidgets('GoMode shell smoke test', (tester) async {
+  testWidgets('GoMode navigation shell smoke test', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: GoModeApp()));
     await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('GoMode'), findsOneWidget);
     expect(find.text('What mode are you in today?'), findsOneWidget);
     expect(find.text('Spin My Mode'), findsWidgets);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Modes'), findsOneWidget);
+    expect(find.text('Map'), findsOneWidget);
+    expect(find.text('Saved'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
+    await tester.tap(find.text('Modes'));
     await tester.pumpAndSettle();
 
+    expect(find.text('Go Out'), findsOneWidget);
     expect(find.text('Date Night'), findsOneWidget);
-    expect(find.text('Weekend Plan'), findsWidgets);
+
+    await tester.tap(find.text('Date Night'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Preview results'), findsOneWidget);
+    expect(find.text('Map'), findsOneWidget);
+
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, -180),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Preview results'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Date Night results'), findsOneWidget);
   });
 }

@@ -31,3 +31,11 @@
 - Centralized GoMode visual tokens under `lib/core/theme/` so screen code consumes named colors, spacing, radii, and shadows instead of local one-off values.
 - Kept typography on system fonts because no safe custom font package or font asset is configured yet.
 - Added shared widgets under `lib/shared/widgets/` to support the approved home, modes, date-night, road-trip, and saved layouts as composable Flutter pieces.
+
+## 2026-07-10 Navigation Shell and Mode Catalog
+
+- Used `StatefulShellRoute.indexedStack` for the five main tabs so each tab can keep its navigation state while the bottom navigation remains visible.
+- Kept `/` as a redirect to `/home`; `/date-night` and `/road-trip` redirect to their catalog-backed mode detail routes so legacy/deep links do not become dead ends.
+- Expanded the local `DiscoveryMode` model into the app-wide mode catalog instead of adding code generation, keeping the milestone reviewable while preserving typed enums for category and query strategy.
+- Stored icon semantic names separately from Flutter `IconData` so the catalog can map cleanly to server payloads later without leaking widget concerns into API data.
+- Added local demo results to every mode as temporary product data until Google Places, Routes, environmental, and Solar integrations are connected.

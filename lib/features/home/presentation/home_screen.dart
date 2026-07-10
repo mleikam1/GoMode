@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
@@ -7,7 +8,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/discovery_mode.dart';
-import '../../../data/repositories/discovery_repository.dart';
+import '../../../data/services/mode_catalog.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -15,12 +16,12 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final modes = ref.watch(discoveryRepositoryProvider).getModes();
-    final popularModes = _popularModes(modes);
+    final catalog = ref.watch(modeCatalogProvider);
+    final popularModes = _popularModes(catalog.modes);
 
-    return GoModeScaffold(
-      currentIndex: 0,
-      body: CustomScrollView(
+    return ColoredBox(
+      color: AppColors.surface,
+      child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: GradientHeader(
@@ -87,7 +88,7 @@ class HomeScreen extends ConsumerWidget {
                     illustration: const ModeWheelIllustration(
                       borderRadius: AppRadius.xlBorder,
                     ),
-                    onPressed: () {},
+                    onPressed: () => context.go('/modes'),
                   ),
                 ],
               ),
@@ -98,6 +99,7 @@ class HomeScreen extends ConsumerWidget {
             sliver: SliverToBoxAdapter(
               child: CategoryCarousel(
                 title: 'Popular modes',
+                onActionTap: () => context.go('/modes'),
                 height: 294,
                 children: [
                   for (final mode in popularModes)
@@ -108,6 +110,7 @@ class HomeScreen extends ConsumerWidget {
                       accentColor: mode.color,
                       badgeLabel: mode.badge,
                       illustration: mode.illustration,
+                      onTap: () => context.go('/modes/${mode.id}'),
                     ),
                 ],
               ),
@@ -262,6 +265,7 @@ class _ContinueSection extends StatelessWidget {
 
 class _HomeModeCardData {
   const _HomeModeCardData({
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -270,6 +274,7 @@ class _HomeModeCardData {
     this.badge,
   });
 
+  final String id;
   final String title;
   final String subtitle;
   final IconData icon;
@@ -283,39 +288,46 @@ List<_HomeModeCardData> _popularModes(List<DiscoveryMode> modes) {
 
   return [
     _HomeModeCardData(
+      id: 'date-night',
       title: 'Date Night',
       subtitle:
-          lookup['date-night']?.description ?? 'Romantic spots and fun ideas',
+          lookup['date-night']?.shortSubtitle ?? 'Romantic spots and fun ideas',
       icon: Icons.favorite_border_rounded,
       color: AppColors.coral,
       badge: 'Popular',
       illustration: const DateNightIllustration(),
     ),
     _HomeModeCardData(
+      id: 'weekend-plan',
       title: 'Weekend Plan',
       subtitle:
-          lookup['weekend']?.description ?? 'Make the most of your weekend',
+          lookup['weekend-plan']?.shortSubtitle ??
+          'Make the most of your weekend',
       icon: Icons.calendar_month_rounded,
       color: AppColors.teal,
       badge: 'Great tonight',
       illustration: const WeekendParkIllustration(),
     ),
     _HomeModeCardData(
+      id: 'road-trip-stops',
       title: 'Road Trip Stops',
       subtitle:
-          lookup['road-trip']?.description ?? 'Scenic places worth the detour',
+          lookup['road-trip-stops']?.shortSubtitle ??
+          'Scenic places worth the detour',
       icon: Icons.directions_car_rounded,
       color: AppColors.lavender,
       badge: 'Popular',
       illustration: const RoadTripIllustration(),
     ),
-    const _HomeModeCardData(
+    _HomeModeCardData(
+      id: 'allergy-map',
       title: 'Allergy Map',
-      subtitle: 'Find safe places near you',
+      subtitle:
+          lookup['allergy-map']?.shortSubtitle ?? 'Find safe places near you',
       icon: Icons.local_florist_rounded,
       color: AppColors.amber,
       badge: 'New',
-      illustration: AllergyOutdoorIllustration(),
+      illustration: const AllergyOutdoorIllustration(),
     ),
   ];
 }
