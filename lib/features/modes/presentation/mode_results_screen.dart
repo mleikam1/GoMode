@@ -13,6 +13,8 @@ import '../../../data/models/discovery_mode.dart';
 import '../../../data/services/mode_catalog.dart';
 import '../../../features/saved/application/saved_library_controller.dart';
 import '../../../features/saved/domain/saved_item.dart';
+import '../../../features/monetization/domain/monetization_models.dart';
+import '../../../features/monetization/presentation/monetization_widgets.dart';
 import '../../../shared/widgets/shared_widgets.dart';
 import '../data/generic_mode_results_service.dart';
 import 'mode_visuals.dart';
@@ -201,7 +203,7 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        for (var index = 0; index < visibleResults.length; index++)
+        for (var index = 0; index < visibleResults.length; index++) ...[
           Builder(
             builder: (context) {
               final result = visibleResults[index];
@@ -229,6 +231,16 @@ class _ModeResultsScreenState extends ConsumerState<ModeResultsScreen> {
               );
             },
           ),
+          if (index == 0 && !isWheel)
+            SponsoredCard(placementId: 'mode-results-${mode.id}'),
+        ],
+        if (mode.id == 'tourist-mode') ...[
+          const RewardedUnlockButton(unlock: RewardedUnlock.extraHiddenGems()),
+        ],
+        if (_leadCaptureTypeFor(mode.id) case final leadType?) ...[
+          LeadCaptureForm(type: leadType),
+          const SizedBox(height: AppSpacing.md),
+        ],
         const SizedBox(height: AppSpacing.sm),
         PrimaryGradientButton(
           label: 'View saved items',
@@ -956,6 +968,28 @@ class _ResultCard extends StatelessWidget {
                 label: Text(completed ? 'Completed' : 'Mark complete'),
               ),
             ],
+            if (result.sponsoredLink?.enabled ?? false) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.handshake_outlined,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      '${result.sponsoredLink!.disclosureLabel} · ${result.sponsoredLink!.partnerName}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const Divider(height: AppSpacing.xl),
             Row(
               children: [
@@ -991,6 +1025,15 @@ class _ResultCard extends StatelessWidget {
       ),
     );
   }
+}
+
+LeadCaptureType? _leadCaptureTypeFor(String modeId) {
+  return switch (modeId) {
+    'solar-checker' => LeadCaptureType.solarChecker,
+    'neighborhood-check' => LeadCaptureType.neighborhoodCheck,
+    'where-should-i-live' => LeadCaptureType.whereShouldILive,
+    _ => null,
+  };
 }
 
 String _actionKey(String action, String resultId) {

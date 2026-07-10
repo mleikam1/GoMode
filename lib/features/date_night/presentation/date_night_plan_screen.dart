@@ -8,6 +8,8 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../features/saved/application/saved_library_controller.dart';
 import '../../../features/saved/domain/saved_item.dart';
+import '../../../features/monetization/domain/monetization_models.dart';
+import '../../../features/monetization/presentation/rewarded_unlock_button.dart';
 import '../../../shared/widgets/primary_gradient_button.dart';
 import '../data/generated_plan_store.dart';
 import '../domain/generated_plan.dart';
@@ -100,6 +102,9 @@ class _DateNightPlanScreenState extends ConsumerState<DateNightPlanScreen> {
                     textStyle: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
+                ),
+                const RewardedUnlockButton(
+                  unlock: RewardedUnlock.extraDateNightPlan(),
                 ),
                 const SizedBox(
                   height: AppSpacing.bottomNavHeight + AppSpacing.xl,

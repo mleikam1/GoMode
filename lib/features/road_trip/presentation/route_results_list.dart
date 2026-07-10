@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../monetization/presentation/sponsored_card.dart';
 import '../domain/route_plan.dart';
 
 class RouteResultsList extends StatelessWidget {
@@ -61,6 +62,11 @@ class RouteResultsList extends StatelessWidget {
             onFavorite: () => onFavorite(stops[index]),
             onNavigate: () => onNavigate(stops[index]),
           ),
+          if (index == 0)
+            const SponsoredCard(
+              placementId: 'road-trip-results',
+              topSpacing: AppSpacing.sm,
+            ),
           if (index != stops.length - 1) const SizedBox(height: AppSpacing.sm),
         ],
       ],

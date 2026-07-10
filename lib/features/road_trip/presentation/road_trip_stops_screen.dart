@@ -8,6 +8,8 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../features/saved/application/saved_library_controller.dart';
 import '../../../features/saved/domain/saved_item.dart';
+import '../../../features/monetization/domain/monetization_models.dart';
+import '../../../features/monetization/presentation/rewarded_unlock_button.dart';
 import '../../../shared/widgets/primary_gradient_button.dart';
 import '../data/road_trip_route_service.dart';
 import '../data/route_stop_store.dart';
@@ -102,13 +104,20 @@ class _RoadTripStopsScreenState extends ConsumerState<RoadTripStopsScreen> {
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 220),
                         child: _selectedView == RoadTripView.results
-                            ? RouteResultsList(
+                            ? Column(
                                 key: const ValueKey('route-results-list'),
-                                stops: visibleStops,
-                                savedStopIds: savedStopIds,
-                                onSave: _toggleSaved,
-                                onFavorite: _toggleSaved,
-                                onNavigate: _navigateToStop,
+                                children: [
+                                  RouteResultsList(
+                                    stops: visibleStops,
+                                    savedStopIds: savedStopIds,
+                                    onSave: _toggleSaved,
+                                    onFavorite: _toggleSaved,
+                                    onNavigate: _navigateToStop,
+                                  ),
+                                  const RewardedUnlockButton(
+                                    unlock: RewardedUnlock.extraRoadTripStops(),
+                                  ),
+                                ],
                               )
                             : RouteMapPlaceholder(
                                 key: const ValueKey('route-map-view'),

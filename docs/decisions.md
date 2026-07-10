@@ -144,3 +144,24 @@
 - Developer health checks run only on demand in debug mode. They expose backend
   configuration, the non-secret Firebase project ID, fallback state, map-widget
   state, and a one-result Places probe without displaying credentials.
+
+## 2026-07-10 — Monetization-ready abstractions
+
+- Added one `MonetizationService` boundary for sponsored placements, rewarded
+  unlocks, premium entitlement state, and lead capture. The app injects a mock
+  implementation only; no ad, purchase, affiliate, or lead backend SDK was
+  added.
+- Kept all release monetization flags off by default. Debug builds render
+  explicitly labeled mock previews so surface placement can be reviewed without
+  network calls, tracking, purchases, real ad IDs, or real destinations.
+- Reserved at most one sponsored slot after the first organic item in generic
+  and Road Trip result lists. Premium ad-removal state suppresses sponsored and
+  rewarded surfaces; core results and actions never depend on either.
+- Modeled affiliate/sponsor metadata as disabled-by-default result data. A link
+  requires both explicit metadata enablement and a presentation-provided opener,
+  preventing a destination from becoming active through data alone.
+- Kept lead capture fail-closed. Solar Checker, Neighborhood Check, and Where
+  Should I Live? can preview and validate the form in debug, but the UI does not
+  create or send a `LeadCapture` unless the injected service explicitly reports
+  that storage and privacy configuration are ready. The current mock never
+  reports ready and discards any direct payload.

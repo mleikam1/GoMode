@@ -14,7 +14,10 @@ import '../../../services/api_client.dart';
 import '../../../services/app_data_maintenance_service.dart';
 import '../../../services/runtime_config.dart';
 import '../../../shared/widgets/shared_widgets.dart';
+import '../../monetization/data/monetization_service.dart';
 import '../../saved/application/saved_library_controller.dart';
+import '../../monetization/domain/monetization_feature_flags.dart';
+import '../../monetization/presentation/premium_upsell_sheet.dart';
 import '../application/profile_settings_controller.dart';
 import '../domain/profile_settings.dart';
 
@@ -32,6 +35,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final catalog = ref.watch(modeCatalogProvider);
     final settings = ref.watch(profileSettingsProvider);
+    final monetizationFlags = ref.watch(monetizationFeatureFlagsProvider);
+    final monetizationService = ref.watch(monetizationServiceProvider);
     final currentSettings = settings.value;
     final cityLabel = currentSettings == null
         ? 'Loading preferences…'
@@ -123,6 +128,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   data: _SettingsContent.new,
                 ),
+                if (monetizationFlags.premiumEnabled &&
+                    (!monetizationService.isMock || kDebugMode)) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  const _SectionTitle(
+                    icon: Icons.workspace_premium_outlined,
+                    title: 'Premium',
+                    subtitle: 'Optional ad-free experience',
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _SettingsCard(
+                    children: [
+                      _ActionRow(
+                        key: const ValueKey('open-premium-upsell'),
+                        icon: Icons.block_rounded,
+                        color: AppColors.amber,
+                        title: 'GoMode Premium',
+                        subtitle: monetizationService.isMock
+                            ? 'Debug preview · no purchase product configured'
+                            : 'Manage an optional ad-free experience',
+                        onTap: _showPremiumUpsell,
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xl),
                 const _SectionTitle(
                   icon: Icons.apps_rounded,
@@ -247,6 +276,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() {
       _healthCheck = _checkBackend(ref.read(backendApiClientProvider));
     });
+  }
+
+  Future<void> _showPremiumUpsell() {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => const PremiumUpsellSheet(),
+    );
   }
 }
 

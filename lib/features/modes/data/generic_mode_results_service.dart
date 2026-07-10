@@ -6,6 +6,7 @@ import '../../../data/repositories/environment_repository.dart';
 import '../../../data/repositories/places_repository.dart';
 import '../../../data/repositories/solar_repository.dart';
 import '../../../data/services/mode_catalog.dart';
+import '../../../features/monetization/domain/monetization_models.dart';
 import '../../../services/location_service.dart';
 
 final genericModeResultsServiceProvider = Provider<GenericModeResultsService>((
@@ -91,6 +92,7 @@ class ModeResultItem {
     this.openStatus,
     this.isDemo = false,
     this.fallbackMessage,
+    this.sponsoredLink,
   });
 
   final String id;
@@ -104,6 +106,10 @@ class ModeResultItem {
   final String? openStatus;
   final bool isDemo;
   final String? fallbackMessage;
+
+  /// Optional affiliate/sponsor metadata. Links are inert unless the metadata
+  /// is explicitly enabled and a presentation surface supplies an opener.
+  final SponsoredLinkMetadata? sponsoredLink;
 }
 
 class DemoGenericModeResultsService implements GenericModeResultsService {
